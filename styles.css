@@ -1,0 +1,111 @@
+/* Grace Monroe brand: black & white, Sanchez slab wordmark, Futura-style sans (Jost),
+   rounded line-work. Slate navy + cream come from the stationery mockups (Miner Creative deck). */
+:root {
+  --bg: #ffffff; --surface: #ffffff; --soft: #f4f4f3; --ink: #0a0a0a; --muted: #5d5d5d;
+  --line: #dcdcda; --navy: #272c3e; --navy-ink: #f4e8de; --accent: #272c3e; --warn: #9a3412;
+  --font: "Jost", "Futura", "Century Gothic", system-ui, sans-serif;
+  --slab: "Sanchez", "Roboto Slab", Georgia, serif;
+  --r: 14px;
+}
+:root[data-theme="dark"] {
+  --bg: #000; --surface: #0e0e0e; --soft: #161616; --ink: #f6f6f4; --muted: #a3a3a0;
+  --line: #2a2a2a; --accent: #f4e8de; --warn: #fdba74;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000; --surface: #0e0e0e; --soft: #161616; --ink: #f6f6f4; --muted: #a3a3a0;
+    --line: #2a2a2a; --accent: #f4e8de; --warn: #fdba74;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--font); }
+a { color: inherit; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+
+/* header */
+header.top { border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 20; }
+.bar { display: flex; align-items: center; gap: 16px; padding: 12px 0; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.brand svg { width: 44px; height: 38px; flex: none; }
+.wordmark { font: 400 20px/1.05 var(--slab); letter-spacing: .32em; text-transform: uppercase; }
+.wordmark small { display: block; font: 400 11px var(--font); letter-spacing: .28em; color: var(--muted); margin-top: 4px; }
+.tools { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.search { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 8px 14px; font: inherit; width: 220px; max-width: 46vw; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 8px 14px; font: 500 14px var(--font); cursor: pointer; }
+.btn:hover, .tab:hover { border-color: var(--ink); }
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+.tab { border: 1px solid transparent; background: none; color: var(--muted); font: 500 15px var(--font); letter-spacing: .06em; text-transform: uppercase; padding: 8px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--bg); background: var(--ink); }
+.tab.navy[aria-selected="true"] { background: var(--navy); color: var(--navy-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* layout */
+main { padding: 28px 0 64px; }
+.panel[hidden] { display: none; }
+h1, h2, h3 { font-family: var(--font); font-weight: 600; margin: 0; }
+h1 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -.01em; line-height: 1.1; }
+h2 { font-size: 13px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 12px; }
+h3 { font-size: 18px; }
+.lede { color: var(--muted); max-width: 62ch; margin: 8px 0 0; }
+.section { margin-top: 36px; }
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.card { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 18px; }
+.card.soft { background: var(--soft); border-color: transparent; }
+.kpi .n { font: 500 34px/1.1 var(--font); letter-spacing: -.01em; }
+.kpi .l { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+.row:first-of-type { border-top: 0; }
+.row .t { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; color: var(--muted); }
+.pill.solid { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.pill.warn { color: var(--warn); border-color: var(--warn); }
+.muted { color: var(--muted); }
+.note { font-size: 14px; color: var(--muted); }
+
+/* calendar list */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 13px; font: 500 14px var(--font); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.nav { display: flex; align-items: center; gap: 8px; margin: 16px 0 6px; }
+.nav .label { font-weight: 500; min-width: 190px; text-align: center; }
+.day { margin-top: 22px; }
+.day h3 { font-size: 15px; letter-spacing: .1em; text-transform: uppercase; display: flex; gap: 10px; align-items: baseline; }
+.day.today h3 span.badge { background: var(--ink); color: var(--bg); padding: 1px 9px; border-radius: 999px; font-size: 11px; }
+.ev { display: grid; grid-template-columns: 120px 1fr auto; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); align-items: baseline; }
+.ev .tm { font-variant-numeric: tabular-nums; color: var(--muted); }
+.ev .nm { font-weight: 500; }
+.ev .sub { font-size: 13px; color: var(--muted); }
+@media (max-width: 560px) { .ev { grid-template-columns: 1fr; gap: 2px; } .search { width: 100%; max-width: none; } .tools { width: 100%; margin-left: 0; } }
+.empty { padding: 28px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--r); }
+
+/* staffing meter */
+.meter { height: 8px; border-radius: 99px; background: var(--soft); overflow: hidden; margin-top: 6px; border: 1px solid var(--line); }
+.meter i { display: block; height: 100%; background: var(--ink); }
+
+/* campaign (slate navy from the brand stationery) */
+.hero-navy { background: var(--navy); color: var(--navy-ink); border-radius: 20px; padding: 32px; position: relative; overflow: hidden; }
+.hero-navy h1 { font-family: var(--slab); font-weight: 400; letter-spacing: .12em; text-transform: uppercase; font-size: clamp(24px, 4vw, 38px); }
+.hero-navy p { max-width: 60ch; opacity: .9; margin: 10px 0 0; }
+.hero-navy a.btn { background: transparent; color: var(--navy-ink); border-color: rgba(244,232,222,.4); margin: 14px 8px 0 0; display: inline-block; text-decoration: none; }
+.hero-navy a.btn:hover { border-color: var(--navy-ink); }
+.hero-navy .tris { position: absolute; right: -10px; top: 0; height: 100%; opacity: .22; pointer-events: none; }
+.hero-navy .bar-wrap { margin-top: 22px; max-width: 520px; }
+.hero-navy .track { height: 8px; background: rgba(244,232,222,.2); border-radius: 99px; overflow: hidden; }
+.hero-navy .track i { display: block; height: 100%; background: var(--navy-ink); }
+.phase { border-top: 3px solid var(--navy); }
+:root[data-theme="dark"] .phase { border-top-color: var(--navy-ink); }
+.tl { list-style: none; margin: 0; padding: 0 0 0 20px; border-left: 2px solid var(--line); }
+.tl li { position: relative; padding: 0 0 18px 18px; }
+.tl li::before { content: ""; position: absolute; left: -27px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); border: 2px solid var(--navy); }
+:root[data-theme="dark"] .tl li::before { border-color: var(--navy-ink); }
+.tl li.done::before { background: var(--navy); }
+:root[data-theme="dark"] .tl li.done::before { background: var(--navy-ink); }
+.tl li.next::before { box-shadow: 0 0 0 4px rgba(39,44,62,.2); }
+.tl .d { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.openitems li { margin: 6px 0; }
+a.link { text-decoration: underline; text-underline-offset: 3px; }
+footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--muted); font-size: 13px; }
+@media print { header.top .tools, nav.tabs { display: none; } }

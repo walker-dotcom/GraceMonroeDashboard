@@ -1,210 +1,133 @@
 (function () {
   "use strict";
-  var S = window.GM_STATIC, TZ = S.tz;
-  var EVENTS = (window.GM_EVENTS || []).map(function (e) {
-    return Object.assign({}, e, { s: new Date(e.start), e: new Date(e.end) });
-  }).sort(function (a, b) { return a.s - b.s; });
-
-  // ---------- helpers ----------
+  var D = window.GM, TZ = D.tz;
   var $ = function (id) { return document.getElementById(id); };
-  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
-  var fmtTime = new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
-  var fmtDay = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "long", month: "long", day: "numeric" });
-  var fmtShort = new Intl.DateTimeFormat("en-US", { timeZone: TZ, month: "short", day: "numeric" });
-  var fmtKey = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
-  var dayKey = function (d) { return fmtKey.format(d); };
-  function ymd(str) { var p = str.split("-"); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12)); } // noon UTC = same calendar day in ET
-  function addDays(d, n) { return new Date(d.getTime() + n * 864e5); }
-  function weekday(d) { return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" }).format(d)); }
-  function startOfWeek(d) { return addDays(ymd(dayKey(d)), -weekday(d)); } // Sunday
-  function timeRange(e) { return fmtTime.format(e.s) + " – " + fmtTime.format(e.e); }
-
-  // "today": the real date if it is inside the loaded event window, otherwise the data's as-of date
-  var now = new Date();
-  var last = EVENTS.length ? EVENTS[EVENTS.length - 1].s : now;
-  var today = (now >= ymd(S.asOf) && now <= last) ? now : ymd(S.asOf);
-  var todayKey = dayKey(today);
-
-  var MINISTRIES = ["Worship & Sunday", "Students & Kids", "Discipleship", "Grace Groups", "Prayer", "Men", "Women", "Outreach & Care", "Staff & Admin", "Other"];
-  var state = { tab: "week", ministry: "All", q: "", weekStart: startOfWeek(today) };
-
-  function matches(e) {
-    if (state.ministry !== "All" && e.ministry !== state.ministry) return false;
-    if (!state.q) return true;
-    return (e.name + " " + e.ministry + " " + e.location).toLowerCase().indexOf(state.q) > -1;
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  function fmt(opts) { return new Intl.DateTimeFormat("en-US", Object.assign({ timeZone: TZ }, opts)); }
+  var fTime = fmt({ hour: "numeric", minute: "2-digit" }), fMon = fmt({ month: "short" }), fDay = fmt({ day: "numeric" }),
+      fWd = fmt({ weekday: "short" }), fLong = fmt({ weekday: "long", month: "long", day: "numeric" }), fHour = fmt({ hour: "numeric", hour12: false });
+  function parts(d) { var o = {}; fmt({ year: "numeric", month: "numeric", day: "numeric", weekday: "short" }).formatToParts(d).forEach(function (p) { o[p.type] = p.value; }); return { y: +o.year, m: +o.month, d: +o.day, wd: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(o.weekday) }; }
+  // Instant for h:mm Eastern on a calendar day (handles daylight saving)
+  function etInstant(y, m, d, h, mi) {
+    for (var off = 4; off <= 5; off++) { var t = new Date(Date.UTC(y, m - 1, d, h + off, mi)); if (+fHour.format(t) % 24 === h) return t; }
+    return new Date(Date.UTC(y, m - 1, d, h + 4, mi));
   }
-  function evRow(e, showDay) {
-    return '<div class="ev"><div class="tm">' + (showDay ? esc(fmtShort.format(e.s)) + " · " : "") + esc(fmtTime.format(e.s)) + '</div>' +
-      '<div><div class="nm">' + esc(e.name) + '</div><div class="sub">' + esc(timeRange(e)) + (e.location ? " · " + esc(e.location.replace(/^Grace Monroe - /, "")) : "") + (e.repeat && e.repeat !== "Does not repeat" ? " · " + esc(e.repeat) : "") + '</div></div>' +
-      '<div><span class="pill">' + esc(e.ministry) + '</span></div></div>';
-  }
-  function rows(list) { return list.map(function (r) { return '<div class="row"><span>' + esc(r.label) + '</span><span class="t">' + esc(r.time) + '</span></div>'; }).join(""); }
-  function nextOf(re) { return EVENTS.filter(function (e) { return e.e >= today && re.test(e.name); })[0]; }
+  var asOfStart = etInstant.apply(null, D.asOf.split("-").map(Number).concat([8, 0]));
+  var skew = Math.max(0, asOfStart - Date.now()); // if the clock is behind the data date, treat the data date as today
+  var now = function () { return new Date(Date.now() + skew); };
 
-  // ---------- panels ----------
+  // ---------- hero: countdown to next Sunday service ----------
+  function nextService() {
+    var n = now(), p = parts(n);
+    for (var i = 0; i < 9; i++) {
+      var dt = new Date(Date.UTC(p.y, p.m - 1, p.d + i, 12)), q = parts(dt);
+      if (q.wd !== 0) continue;
+      var times = [[9, 0], [11, 0]];
+      for (var k = 0; k < times.length; k++) { var t = etInstant(q.y, q.m, q.d, times[k][0], times[k][1]); if (t - n > -90 * 60000) return { at: t, label: D.services[k], day: dt }; }
+    }
+  }
+  function renderHero() {
+    var s = nextService();
+    $("now").innerHTML =
+      '<div class="eyebrow">Next gathering</div>' +
+      '<h1>' + esc(fLong.format(s.day)) + '</h1>' +
+      '<div class="eyebrow" style="margin-top:8px">Sunday services · ' + esc(D.services.join(" & ")) + '</div>' +
+      '<div class="count" id="count" aria-live="off"></div>' +
+      '<div class="chips"><span class="pill">Series: ' + esc(D.series) + '</span><span class="pill ghost">Wednesday · 6:00 PM</span><span class="pill ghost">' + esc(D.address) + '</span></div>';
+    tick(s);
+    clearInterval(renderHero.t); renderHero.t = setInterval(function () { tick(s); }, 1000);
+  }
+  function tick(s) {
+    var ms = s.at - now(), el = $("count"); if (!el) return;
+    if (ms <= 0) { el.innerHTML = '<div style="min-width:0;padding:14px 22px"><b style="font-size:26px">Services are underway</b></div>'; return; }
+    var d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, sec = Math.floor(ms / 1e3) % 60;
+    el.innerHTML = [[d, "days"], [h, "hours"], [m, "min"], [sec, "sec"]].map(function (x) { return '<div><b>' + String(x[0]).padStart(2, "0") + '</b><span>' + x[1] + '</span></div>'; }).join("");
+  }
+
+  // ---------- week strip ----------
+  var sel = parts(now()).wd;
   function renderWeek() {
-    var end = addDays(today, 7);
-    var upcoming = EVENTS.filter(function (e) { return e.e >= today && e.s < end; });
-    var sundays = EVENTS.filter(function (e) { return e.name === "Worship Service" && e.e >= today; });
-    var nextSun = sundays[0];
-    var closing = S.signups.filter(function (s) { return s.closes; }).sort(function (a, b) { return a.closes < b.closes ? -1 : 1; });
-    var soon = closing.filter(function (s) { return s.closes >= todayKey; })[0];
-    var byDay = {};
-    upcoming.forEach(function (e) { (byDay[dayKey(e.s)] = byDay[dayKey(e.s)] || []).push(e); });
-    var days = Object.keys(byDay).sort().map(function (k) {
-      var d = ymd(k);
-      return '<div class="day' + (k === todayKey ? " today" : "") + '"><h3>' + esc(fmtDay.format(d)) + (k === todayKey ? ' <span class="badge">Today</span>' : "") + '</h3>' + byDay[k].map(function (e) { return evRow(e); }).join("") + '</div>';
-    }).join("");
-    var needs = S.staffing.filter(function (s) { return s.open >= 12; }).slice(0, 4);
-    $("panel-week").innerHTML =
-      '<h1>This week at Grace Monroe</h1><p class="lede">' + esc(fmtDay.format(today)) + ' · Eastern time. Everything staff need to know for the next seven days.</p>' +
-      '<div class="section grid g3">' +
-        '<div class="card kpi"><div class="n">' + (nextSun ? esc(fmtShort.format(nextSun.s)) : "—") + '</div><div class="l">Next Sunday · Services 9:00 &amp; 11:00 AM</div></div>' +
-        '<div class="card kpi"><div class="n">' + esc(S.currentSeries.title) + '</div><div class="l">Current Sunday series</div></div>' +
-        '<div class="card kpi"><div class="n">6:00 PM</div><div class="l">Wednesday gathering · Students &amp; Kids</div></div>' +
-        '<div class="card kpi"><div class="n">' + upcoming.length + '</div><div class="l">Events on the calendar in the next 7 days</div></div>' +
-        (soon ? '<div class="card kpi"><div class="n">' + esc(fmtShort.format(ymd(soon.closes))) + '</div><div class="l">Next registration deadline: ' + esc(soon.name) + '</div></div>' : "") +
-      '</div>' +
-      '<div class="section grid g2">' +
-        '<div class="card"><h2>Key gathering times</h2>' +
-          '<div class="row"><strong>Sunday services</strong><span class="t">9:00 AM · 11:00 AM</span></div>' +
-          '<div class="row"><strong>Sunday kids</strong><span class="t">9:00 AM – 12:00 PM</span></div>' +
-          '<div class="row"><strong>Wednesday gathering</strong><span class="t">6:00 – 7:30 PM</span></div>' +
-          '<div class="row"><strong>Worship rehearsal</strong><span class="t">Thu 6:30 / 7:00 PM</span></div>' +
-          '<div class="row"><strong>All‑Staff Meeting</strong><span class="t">Last Tue · 10 AM</span></div>' +
-        '</div>' +
-        '<div class="card"><h2>Volunteer positions still open</h2>' + needs.map(function (s) {
-          var tot = s.filled != null ? s.open + s.filled : null;
-          return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>' + esc(s.when) + '</span><span class="pill warn">' + s.open + ' needed</span></div>' +
-            (tot ? '<div class="meter" aria-label="' + s.filled + ' of ' + tot + ' filled"><i style="width:' + Math.round(100 * s.filled / tot) + '%"></i></div>' : "") + '</div>';
-        }).join("") + '<p class="note">From Planning Center Services. See the Gatherings tab for every service.</p></div>' +
-      '</div>' +
-      '<div class="section"><h2>Next 7 days</h2>' + (days || '<div class="empty">No events in this window.</div>') + '</div>';
+    var todayWd = parts(now()).wd;
+    $("rhythm").innerHTML = '<h2>The weekly <em>rhythm</em></h2><div class="strip" role="group" aria-label="Weekly rhythm">' + D.week.map(function (w, i) {
+      return '<button class="day' + (i === todayWd ? " today" : "") + '" data-i="' + i + '" aria-pressed="' + (i === sel) + '"><div class="d">' + w.d + '</div><div class="m">' + esc(w.main) + '</div><div class="s">' + esc(w.sub) + '</div></button>';
+    }).join("") + '</div><div class="detail" id="detail"></div>';
+    showDay();
+  }
+  function showDay() { $("detail").innerHTML = '<ul>' + D.week[sel].lines.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join("") + '</ul>'; }
+
+  // ---------- moments ----------
+  var cat = "All";
+  function mStart(m) { return m.allDay ? etInstant.apply(null, m.start.split("-").map(Number).concat([0, 0])) : new Date(m.start); }
+  function mEnd(m) { return m.allDay ? etInstant.apply(null, m.end.split("-").map(Number).concat([23, 59])) : (m.end ? new Date(m.end) : new Date(+new Date(m.start) + 36e5)); }
+  function when(m) {
+    var s = mStart(m);
+    if (m.allDay) return fMon.format(s) + " " + fDay.format(s) + " – " + fMon.format(mEnd(m)) + " " + fDay.format(mEnd(m));
+    return fWd.format(s) + " · " + fTime.format(s) + (m.end ? " – " + fTime.format(new Date(m.end)) : "");
+  }
+  function renderMoments() {
+    var cats = ["All"].concat(D.moments.reduce(function (a, m) { return a.indexOf(m.cat) < 0 ? a.concat(m.cat) : a; }, []));
+    var list = D.moments.filter(function (m) { return mEnd(m) >= now() && (cat === "All" || m.cat === cat); }).sort(function (a, b) { return mStart(a) - mStart(b); });
+    $("moments").innerHTML = '<div class="head"><h2>Churchwide <em>moments</em></h2><div class="arrows"><button class="btn" data-dir="-1" aria-label="Scroll left">←</button><button class="btn" data-dir="1" aria-label="Scroll right">→</button></div></div><div class="filters" role="group" aria-label="Filter moments">' +
+      cats.map(function (c) { return '<button class="f" data-c="' + esc(c) + '" aria-pressed="' + (c === cat) + '">' + esc(c) + '</button>'; }).join("") + '</div>' +
+      '<div class="rail">' + (list.map(function (m) {
+        var s = mStart(m);
+        return '<button class="card" data-id="' + m.id + '"><span class="tag ' + esc(m.cat) + '">' + esc(m.cat) + '</span><div class="date"><b>' + fDay.format(s) + '</b><span>' + fMon.format(s) + '<br>' + fWd.format(s) + '</span></div><h3>' + esc(m.title) + '</h3><div class="t">' + esc(m.allDay ? when(m) : fTime.format(s)) + '</div></button>';
+      }).join("") || '<p class="muted">Nothing upcoming in this category.</p>') + '</div>';
   }
 
-  function renderGather() {
-    var s = S.sunday, m = S.midweek;
-    $("panel-gather").innerHTML =
-      '<h1>Sunday &amp; midweek gatherings</h1><p class="lede">Standing times for the weekly rhythm of Grace Monroe. Series: <strong>' + esc(S.currentSeries.title) + '</strong> on Sundays · <strong>' + esc(S.wedSeries.title) + '</strong> on Wednesdays (' + esc(S.wedSeries.note) + ').</p>' +
-      '<div class="section grid g2">' +
-        '<div class="card"><h2>Sunday · adult services</h2>' + s.services.map(function (x) { return '<div class="row"><span><strong>' + esc(x.label) + '</strong></span><span class="t">' + esc(x.time) + ' – ' + esc(x.end) + '</span></div>'; }).join("") + '<p class="note">315 N Madison Ave, Monroe, GA</p></div>' +
-        '<div class="card"><h2>Sunday · kids experience</h2>' + rows(s.kids) + '</div>' +
-        '<div class="card"><h2>Sunday · team call sheet</h2>' + rows(s.team) + '</div>' +
-        '<div class="card"><h2>Sunday · classes &amp; groups</h2>' + rows(s.classes) + '</div>' +
-      '</div>' +
-      '<div class="section grid g2">' +
-        '<div class="card"><h2>Wednesday</h2>' + rows(m.wednesday) + '</div>' +
-        '<div class="card"><h2>Other weekly rhythms</h2>' + m.other.map(function (r) { return '<div class="row"><span><span class="pill" style="margin-right:8px">' + r.day + '</span>' + esc(r.label) + '</span><span class="t">' + esc(r.time) + '</span></div>'; }).join("") + '</div>' +
-      '</div>' +
-      '<div class="section"><h2>Staff rhythm</h2><div class="grid g2">' + S.staffRhythm.map(function (r) { return '<div class="card soft"><strong>' + esc(r.label) + '</strong><div class="muted">' + esc(r.detail) + '</div></div>'; }).join("") + '</div></div>' +
-      '<div class="section"><h2>Volunteer staffing · next gatherings</h2><div class="grid g3">' + S.staffing.map(function (x) {
-        return '<div class="card"><strong>' + esc(x.when) + '</strong><div class="kpi"><div class="n">' + x.open + '</div><div class="l">positions to fill' + (x.filled != null ? " · " + x.filled + " scheduled" : "") + '</div></div></div>';
-      }).join("") + '</div></div>';
+  // ---------- calendar export + modal ----------
+  function ics(m) {
+    var z = function (d) { return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); };
+    var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Grace Monroe//Dashboard//EN", "BEGIN:VEVENT", "UID:" + m.id + "@gracemonroe-dashboard", "DTSTAMP:" + z(new Date()), "SUMMARY:" + m.title];
+    if (m.allDay) { var e = new Date(mEnd(m).getTime() + 864e5), ymd = function (d) { var p = parts(d); return "" + p.y + String(p.m).padStart(2, "0") + String(p.d).padStart(2, "0"); };
+      lines.push("DTSTART;VALUE=DATE:" + ymd(mStart(m)), "DTEND;VALUE=DATE:" + ymd(e)); }
+    else lines.push("DTSTART:" + z(mStart(m)), "DTEND:" + z(mEnd(m)));
+    lines.push("LOCATION:" + (m.place || ""), "DESCRIPTION:" + (m.blurb || ""), "END:VEVENT", "END:VCALENDAR");
+    return "data:text/calendar;charset=utf-8," + encodeURIComponent(lines.join("\r\n"));
   }
-
-  function renderCal() {
-    var ws = state.weekStart, we = addDays(ws, 7);
-    var list = EVENTS.filter(function (e) { return e.s >= ws && e.s < we && matches(e); });
-    var searching = !!state.q;
-    if (searching) list = EVENTS.filter(function (e) { return e.e >= today && matches(e); }).slice(0, 80);
-    var byDay = {}; list.forEach(function (e) { (byDay[dayKey(e.s)] = byDay[dayKey(e.s)] || []).push(e); });
-    var keys = Object.keys(byDay).sort();
-    var first = EVENTS[0] ? startOfWeek(EVENTS[0].s) : ws, lastW = last ? startOfWeek(last) : ws;
-    $("panel-cal").innerHTML =
-      '<h1>Calendar</h1><p class="lede">Live from Planning Center Calendar. Private rentals are left out. Data currently runs through ' + esc(fmtShort.format(last)) + '.</p>' +
-      '<div class="chips" role="group" aria-label="Filter by ministry">' + ["All"].concat(MINISTRIES).map(function (m) { return '<button class="chip" data-min="' + esc(m) + '" aria-pressed="' + (state.ministry === m) + '">' + esc(m) + '</button>'; }).join("") + '</div>' +
-      (searching ? '<p class="note">Showing upcoming matches for “' + esc(state.q) + '”. Clear the search to browse by week.</p>' :
-        '<div class="nav"><button class="btn" id="prev"' + (ws <= first ? " disabled" : "") + '>← Prev</button><div class="label">' + esc(fmtShort.format(ws)) + ' – ' + esc(fmtShort.format(addDays(ws, 6))) + '</div><button class="btn" id="next"' + (ws >= lastW ? " disabled" : "") + '>Next →</button><button class="btn" id="thisweek">This week</button></div>') +
-      (keys.length ? keys.map(function (k) { return '<div class="day' + (k === todayKey ? " today" : "") + '"><h3>' + esc(fmtDay.format(ymd(k))) + (k === todayKey ? ' <span class="badge">Today</span>' : "") + '</h3>' + byDay[k].map(function (e) { return evRow(e); }).join("") + '</div>'; }).join("") : '<div class="empty">Nothing matches. Try another ministry or week.</div>');
+  var lastFocus;
+  function openModal(m) {
+    lastFocus = document.activeElement;
+    $("mbody").innerHTML = '<span class="tag ' + esc(m.cat) + '">' + esc(m.cat) + '</span><h3 id="m-title">' + esc(m.title) + '</h3><div class="meta">' + esc(when(m)) + (m.noEnd ? " (end time not set)" : "") + '<br>' + esc(m.place || "") + '</div><p>' + esc(m.blurb || "") + '</p>' +
+      '<div class="acts"><a class="pill" href="' + ics(m) + '" download="' + esc(m.id) + '.ics">Add to calendar</a>' + (m.url ? '<a class="pill ghost" href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(m.cta || "Open") + ' ↗</a>' : "") + '</div>';
+    $("modal").hidden = false; $("mx").focus();
   }
+  function closeModal() { $("modal").hidden = true; if (lastFocus) lastFocus.focus(); }
 
-  function renderMin() {
-    var q = state.q;
-    var cards = MINISTRIES.filter(function (m) { return m !== "Other"; }).map(function (m) {
-      var evs = EVENTS.filter(function (e) { return e.ministry === m && e.e >= today; });
-      var weekly = {}; evs.forEach(function (e) { if (!weekly[e.name]) weekly[e.name] = e; });
-      var names = Object.keys(weekly);
-      var signups = S.signups.filter(function (x) { return x.ministry === m; });
-      var hay = (m + " " + names.join(" ") + " " + signups.map(function (x) { return x.name; }).join(" ")).toLowerCase();
-      if (q && hay.indexOf(q) < 0) return "";
-      return '<div class="card"><h3>' + esc(m) + '</h3><p class="note">' + evs.length + ' upcoming events loaded</p>' +
-        names.slice(0, 6).map(function (n) { var e = weekly[n]; return '<div class="row"><span>' + esc(n) + '</span><span class="t">' + esc(fmtShort.format(e.s)) + '</span></div>'; }).join("") +
-        (signups.length ? '<h2 style="margin-top:14px">Open signups</h2>' + signups.map(function (x) { return '<div class="row"><a class="link" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.name) + '</a>' + (x.closes ? '<span class="t">closes ' + esc(fmtShort.format(ymd(x.closes))) + '</span>' : "") + '</div>'; }).join("") : "") +
-        '<button class="btn" style="margin-top:12px" data-goto="' + esc(m) + '">See calendar →</button></div>';
-    }).join("");
-    $("panel-min").innerHTML =
-      '<h1>Ministries</h1><p class="lede">Each ministry’s upcoming gatherings and open registrations, plus the Church Center group types people can join.</p>' +
-      '<div class="section grid g2">' + (cards || '<div class="empty">No ministries match your search.</div>') + '</div>' +
-      '<div class="section"><h2>Group types on Church Center</h2><div class="grid g3">' + S.groupTypes.filter(function (g) { return !q || (g.name + g.blurb).toLowerCase().indexOf(q) > -1; }).map(function (g) {
-        return '<a class="card" style="text-decoration:none" href="' + esc(g.url) + '" target="_blank" rel="noopener"><strong>' + esc(g.name) + '</strong><div class="muted">' + esc(g.blurb) + '</div></a>';
-      }).join("") + '</div></div>';
-  }
-
+  // ---------- campaign ----------
+  var step = -1;
   function renderCamp() {
-    var c = S.campaign, p = c.prayer;
-    var a = ymd(p.start), b = ymd(p.end), pct = Math.max(0, Math.min(100, Math.round(100 * (today - a) / (b - a))));
-    var ms = c.milestones.slice().sort(function (x, y) { return x.date < y.date ? -1 : 1; });
-    var nextIdx = ms.findIndex(function (m) { return m.date >= todayKey; });
-    var tris = '<svg class="tris" viewBox="0 0 220 300" fill="none" stroke="#f4e8de" stroke-width="1.5" aria-hidden="true"><path d="M10 10 V290 L210 150 Z"/><path d="M50 10 V290 L210 150" /><path d="M90 10 V290 L210 150"/></svg>';
-    $("panel-camp").innerHTML =
-      '<div class="hero-navy">' + tris +
-        '<span class="pill" style="color:#f4e8de;border-color:rgba(244,232,222,.4)">Campaign</span>' +
-        '<h1 style="margin-top:12px">' + esc(c.name) + '</h1>' +
-        '<p><strong>' + esc(c.tagline) + '</strong></p><p>' + esc(c.verse) + '</p>' +
-        '<div class="bar-wrap"><div style="display:flex;justify-content:space-between;font-size:14px"><span>' + esc(p.label) + '</span><span>' + (pct >= 100 ? "Complete" : pct + "%") + '</span></div><div class="track" role="img" aria-label="' + esc(p.label) + ' ' + pct + ' percent"><i style="width:' + pct + '%"></i></div>' +
-        '<div style="font-size:13px;opacity:.8;margin-top:6px">' + esc(fmtShort.format(a)) + ' → ' + esc(fmtShort.format(b)) + '</div></div>' +
-        '<div style="margin-top:6px">' + c.links.map(function (l) { return '<a class="btn" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.label) + '</a>'; }).join("") + '</div>' +
-      '</div>' +
-      '<div class="section"><h2>Phases</h2><div class="grid g2">' + c.phases.map(function (ph) { return '<div class="card phase"><strong>' + esc(ph.title) + '</strong><div class="muted">' + esc(ph.dates) + '</div><p style="margin:8px 0 0">' + esc(ph.detail) + '</p></div>'; }).join("") + '</div></div>' +
-      '<div class="section grid g2">' +
-        '<div><h2>Timeline</h2><ol class="tl">' + ms.map(function (m, i) {
-          var cls = m.date < todayKey ? "done" : (i === nextIdx ? "next" : "");
-          return '<li class="' + cls + '"><div class="d">' + esc(fmtShort.format(ymd(m.date))) + (i === nextIdx ? " · up next" : "") + '</div><div>' + esc(m.title) + '</div>' + (m.owner ? '<div class="muted" style="font-size:14px">' + esc(m.owner) + '</div>' : "") + '</li>';
-        }).join("") + '</ol></div>' +
-        '<div><div class="card soft"><h2>Open items</h2><ul class="openitems" style="margin:0;padding-left:18px">' + c.openItems.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ul></div>' +
-        '<div class="card" style="margin-top:14px"><h2>Social rhythm</h2>' + c.social.map(function (x) { return '<div class="row"><span class="pill">' + x.day + '</span><span style="flex:1;margin-left:12px">' + esc(x.text) + '</span></div>'; }).join("") + '<p class="note">Reformat every clip and quote for feed, Stories, and a static graphic.</p></div></div>' +
-      '</div>';
-  }
-
-  function renderRes() {
-    $("panel-res").innerHTML = '<h1>Resources</h1><p class="lede">Quick links for staff.</p><div class="section grid g2">' + S.resources.map(function (g) {
-      return '<div class="card"><h2>' + esc(g.group) + '</h2>' + g.items.map(function (i) { return '<div class="row"><a class="link" href="' + esc(i.url) + '" target="_blank" rel="noopener">' + esc(i.label) + '</a><span class="t">↗</span></div>'; }).join("") + '</div>';
-    }).join("") + '</div>' +
-    '<div class="section"><h2>Open registrations</h2><div class="grid g3">' + S.signups.map(function (x) { return '<a class="card" style="text-decoration:none" href="' + esc(x.url) + '" target="_blank" rel="noopener"><strong>' + esc(x.name) + '</strong><div class="muted">' + esc(x.ministry) + (x.closes ? " · closes " + esc(fmtShort.format(ymd(x.closes))) : "") + '</div></a>'; }).join("") + '</div></div>';
-  }
-
-  var RENDER = { week: renderWeek, gather: renderGather, cal: renderCal, min: renderMin, camp: renderCamp, res: renderRes };
-  function show(tab) {
-    state.tab = tab;
-    document.querySelectorAll(".tab").forEach(function (t) { t.setAttribute("aria-selected", String(t.dataset.tab === tab)); });
-    document.querySelectorAll(".panel").forEach(function (p) { p.hidden = p.id !== "panel-" + tab; });
-    RENDER[tab]();
-    try { history.replaceState(null, "", "#" + tab); } catch (e) {}
+    var C = D.campaign, n = now(), a = etInstant.apply(null, C.prayer.start.split("-").map(Number).concat([0, 0])), b = etInstant.apply(null, C.prayer.end.split("-").map(Number).concat([23, 59]));
+    var pct = Math.max(0, Math.min(1, (n - a) / (b - a))), r = 62, circ = 2 * Math.PI * r;
+    var cur = C.steps.findIndex(function (s) { return etInstant.apply(null, s.end.split("-").map(Number).concat([23, 59])) >= n; });
+    if (step < 0) step = cur;
+    $("camp").innerHTML =
+      '<h2>Campaign</h2><h3 class="big">' + esc(C.name) + '</h3><p>' + esc(C.tag) + '</p>' +
+      '<div class="camp"><svg class="ring" viewBox="0 0 150 150" role="img" aria-label="100 Days of Prayer ' + (pct >= 1 ? "complete" : Math.round(pct * 100) + " percent") + '"><circle cx="75" cy="75" r="' + r + '" fill="none" stroke="rgba(244,232,222,.2)" stroke-width="8"/><circle cx="75" cy="75" r="' + r + '" fill="none" stroke="#f4e8de" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + circ + '" stroke-dashoffset="' + circ * (1 - pct) + '" transform="rotate(-90 75 75)"/><text x="75" y="76" text-anchor="middle">' + (pct >= 1 ? "100" : Math.round(pct * 100) + "%") + '</text><text class="l" x="75" y="98" text-anchor="middle">DAYS OF PRAYER</text></svg>' +
+      '<div><div class="steps" role="group" aria-label="Campaign journey">' + C.steps.map(function (s, i) { return '<button class="step ' + (i < cur ? "done" : i === cur ? "now" : "") + '" data-s="' + i + '" aria-pressed="' + (i === step) + '"><span class="n">' + (i < cur ? "Done" : i === cur ? "Now" : "Next") + ' · ' + esc(s.when) + '</span><b>' + esc(s.t) + '</b></button>'; }).join("") + '</div>' +
+      '<div class="say" id="say">' + esc(C.steps[step].s) + '</div><span class="nudge">' + esc(C.needs) + '</span></div></div>' +
+      '<div class="links" style="margin-top:28px">' + C.links.map(function (l) { return '<a href="' + esc(l.u) + '" target="_blank" rel="noopener">' + esc(l.l) + ' ↗</a>'; }).join("") + '</div>';
   }
 
   // ---------- events ----------
-  document.querySelector("nav.tabs").addEventListener("click", function (e) { var t = e.target.closest(".tab"); if (t) show(t.dataset.tab); });
   document.addEventListener("click", function (e) {
-    var chip = e.target.closest(".chip"); if (chip) { state.ministry = chip.dataset.min; renderCal(); return; }
-    var go = e.target.closest("[data-goto]"); if (go) { state.ministry = go.dataset.goto; state.q = ""; $("q").value = ""; show("cal"); return; }
-    if (e.target.id === "prev") { state.weekStart = addDays(state.weekStart, -7); renderCal(); }
-    if (e.target.id === "next") { state.weekStart = addDays(state.weekStart, 7); renderCal(); }
-    if (e.target.id === "thisweek") { state.weekStart = startOfWeek(today); renderCal(); }
+    var t = e.target.closest("button,a"); if (!t) { if (e.target.id === "modal") closeModal(); return; }
+    if (t.classList.contains("day")) { sel = +t.dataset.i; document.querySelectorAll(".day").forEach(function (b) { b.setAttribute("aria-pressed", String(+b.dataset.i === sel)); }); showDay(); }
+    else if (t.classList.contains("f")) { cat = t.dataset.c; renderMoments(); }
+    else if (t.classList.contains("card")) openModal(D.moments.filter(function (m) { return m.id === t.dataset.id; })[0]);
+    else if (t.classList.contains("step")) { step = +t.dataset.s; renderCamp(); }
+    else if (t.dataset.dir) document.querySelector(".rail").scrollBy({ left: 290 * +t.dataset.dir, behavior: "smooth" });
+    else if (t.id === "mx") closeModal();
   });
-  $("q").addEventListener("input", function (e) {
-    state.q = e.target.value.trim().toLowerCase();
-    if (state.q && state.tab !== "cal" && state.tab !== "min") show("cal"); else RENDER[state.tab]();
-  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
+  $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(); });
   $("theme").addEventListener("click", function () {
-    var root = document.documentElement, dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-    root.dataset.theme = dark ? "light" : "dark";
-    try { localStorage.setItem("gm-theme", root.dataset.theme); } catch (e) {}
+    var r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    r.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem("gm-theme", r.dataset.theme); } catch (x) {}
   });
-  try { var th = localStorage.getItem("gm-theme"); if (th) document.documentElement.dataset.theme = th; } catch (e) {}
+  try { var th = localStorage.getItem("gm-theme"); if (th) document.documentElement.dataset.theme = th; } catch (x) {}
 
-  $("mission").textContent = "Our mission: " + S.mission;
-  $("asof").textContent = "Data as of " + S.asOf + " · Planning Center (Services, Calendar, Registrations, Groups, Publishing) and the Bold Springs Campaign master calendar.";
-  window.addEventListener("hashchange", function () { var h = location.hash.slice(1); if (RENDER[h] && h !== state.tab) show(h); });
-  var start = (location.hash || "").slice(1);
-  show(RENDER[start] ? start : "week");
+  $("links").innerHTML = D.links.map(function (l) { return '<a href="' + esc(l.u) + '" target="_blank" rel="noopener">' + esc(l.l) + ' ↗</a>'; }).join("");
+  $("foot").textContent = "Our mission: " + D.mission + " · Data as of " + D.asOf + " from Planning Center and the Bold Springs master calendar. Staff only; please don't share links outside the church account.";
+  renderHero(); renderWeek(); renderMoments(); renderCamp();
 })();

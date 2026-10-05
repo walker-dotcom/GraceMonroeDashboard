@@ -1,37 +1,23 @@
 # Grace Monroe Staff Dashboard
 
-A friendly, interactive dashboard for Grace Monroe staff: this week at a glance, Sunday and midweek gathering times,
-a filterable calendar, ministry cards with open registrations, and the **Bold Springs Campaign** timeline.
+A visual, interactive churchwide view for Grace Monroe staff. Open `index.html` in any browser (no build step).
 
-Open `index.html` in any browser. There is no build step and no server.
-
-## Tabs
-| Tab | What it shows |
-|---|---|
-| This Week | Next Sunday, current series, Wednesday time, next 7 days of events, open volunteer positions |
-| Gatherings | Sunday services, kids sessions, team call sheet, classes, Wednesday and weekly rhythms, staff meetings |
-| Calendar | Week-by-week view, ministry filters, search |
-| Ministries | Per-ministry upcoming events and open signups, Church Center group types |
-| Campaign | Bold Springs Campaign: phases, 100 Days of Prayer, timeline, open items, social rhythm |
-| Resources | Links to Planning Center, sermons, campaign files, open registrations |
+* **Now:** live countdown to the next Sunday service (9:00 and 11:00 AM, Eastern), current series, Wednesday time.
+* **Weekly rhythm:** tap any day to see what's happening.
+* **Churchwide moments:** swipeable cards with category filters. Tap a card for details and **Add to calendar** (.ics).
+* **Campaign:** Bold Springs Campaign journey (Pray, Tell, Gather, Launch) with a 100 Days of Prayer ring. Tap a step for detail.
 
 ## Brand
-Built from the Miner Creative logo deck: black and white, Sanchez slab wordmark, a Futura-style sans (Jost), rounded
-line-work, and the slate navy + cream from the stationery mockups (used on the Campaign tab).
-The triangle mark in the header is an SVG approximation; replace it with the official vector file when available.
+Built from the Miner Creative logo deck: black and white, Sanchez slab wordmark, Futura-style sans (Jost), rounded
+line-work, and the slate navy + cream from the stationery mockups (campaign band). The header triangle mark is an SVG
+approximation; replace it with the official vector file.
 
-## Data and refreshing
-* `data/events.js` – Planning Center Calendar event instances. Regenerate with
-  `python3 scripts/build_data.py <calendar_event_instances.json> > data/events.js`.
-  Private rentals (baby showers, birthday parties) are filtered out in the script.
-* `data/static.js` – gathering times (Planning Center Services plan times), open registrations, group types, campaign
-  timeline (Bold Springs Campaign Master Calendar in Google Drive), and resource links. Edit by hand or ask Claude to refresh it.
+## Updating
+All content lives in `data/data.js` (moments, weekly rhythm, campaign steps, links). Sources: Planning Center
+(Calendar, Services, Registrations, Publishing) and the Bold Springs Campaign master calendar in Drive.
+Times are Eastern (`America/New_York`).
 
-Times are shown in Eastern time (`America/New_York`).
-
-## Guardrails (per church AI policy)
-* **No giving, pledge, or member-level data.** Giving data is Tier 3 and needs advance written approval from the Executive
-  Director before it is added. A pledge-progress card for the campaign can be added once that approval is in place.
-* The campaign host-home tracker (member addresses) is deliberately not imported.
-* Anything published from this dashboard (public or donor-facing) needs staff or ministry-lead approval first.
-* Don't share chat links; they create public URLs.
+## Guardrails (church AI policy)
+* No giving, pledge, or member-level data (Tier 3; needs Executive Director approval before adding).
+* The campaign host-home tracker (member addresses) is deliberately not included.
+* Staff or ministry-lead approval is needed before anything is published or shared beyond staff.

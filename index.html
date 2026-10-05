@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Grace Monroe Staff Dashboard</title>
-<meta name="description" content="Churchwide and ministry-specific dashboard for Grace Monroe staff: Sunday and midweek gatherings, calendar, ministries, and the Bold Springs Campaign.">
+<meta name="description" content="What's next at Grace Monroe: Sundays, the weekly rhythm, churchwide moments, and the Bold Springs Campaign.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Sanchez&display=swap" rel="stylesheet">
@@ -12,52 +12,38 @@
 </head>
 <body>
 <header class="top">
-  <div class="wrap">
-    <div class="bar">
-      <a class="brand" href="#" aria-label="Grace Monroe staff dashboard home">
-        <!-- Approximation of the two-triangle G/M mark from the brand deck; swap in the official SVG when available. -->
-        <svg viewBox="0 0 100 86" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M6 80 L33 8 L60 80 Z"/>
-          <path d="M36 80 L64 8 L94 80 Z"/>
-          <path d="M82 62 H66" stroke-width="5"/>
-        </svg>
-        <span class="wordmark">Grace Monroe<small>Staff Dashboard</small></span>
-      </a>
-      <div class="tools">
-        <input id="q" class="search" type="search" placeholder="Search events, ministries…" aria-label="Search events and ministries">
-        <button id="theme" class="btn" aria-label="Toggle light and dark mode">Theme</button>
-      </div>
-    </div>
-    <nav class="tabs" role="tablist" aria-label="Dashboard sections">
-      <button class="tab" role="tab" data-tab="week" aria-selected="true">This Week</button>
-      <button class="tab" role="tab" data-tab="gather" aria-selected="false">Gatherings</button>
-      <button class="tab" role="tab" data-tab="cal" aria-selected="false">Calendar</button>
-      <button class="tab" role="tab" data-tab="min" aria-selected="false">Ministries</button>
-      <button class="tab navy" role="tab" data-tab="camp" aria-selected="false">Campaign</button>
-      <button class="tab" role="tab" data-tab="res" aria-selected="false">Resources</button>
+  <div class="wrap bar">
+    <a class="brand" href="#now" aria-label="Grace Monroe staff dashboard">
+      <!-- Approximation of the two-triangle mark from the brand deck; replace with the official SVG. -->
+      <svg viewBox="0 0 100 86" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 80 L33 8 L60 80 Z"/><path d="M36 80 L64 8 L94 80 Z"/><path d="M82 62 H66" stroke-width="5"/>
+      </svg>
+      <span class="wordmark">Grace Monroe</span>
+    </a>
+    <nav aria-label="Sections">
+      <a href="#now">Now</a><a href="#rhythm">Week</a><a href="#moments">Moments</a><a href="#campaign">Campaign</a>
     </nav>
+    <button id="theme" class="btn" aria-label="Toggle light and dark mode">◐</button>
   </div>
 </header>
 
-<main class="wrap">
-  <section id="panel-week" class="panel" role="tabpanel"></section>
-  <section id="panel-gather" class="panel" role="tabpanel" hidden></section>
-  <section id="panel-cal" class="panel" role="tabpanel" hidden></section>
-  <section id="panel-min" class="panel" role="tabpanel" hidden></section>
-  <section id="panel-camp" class="panel" role="tabpanel" hidden></section>
-  <section id="panel-res" class="panel" role="tabpanel" hidden></section>
+<main>
+  <section id="now" class="wrap hero"></section>
+  <section id="rhythm" class="wrap block"></section>
+  <section id="moments" class="wrap block"></section>
+  <section id="campaign" class="band"><div class="wrap" id="camp"></div></section>
 </main>
 
-<footer>
-  <div class="wrap">
-    <div id="mission"></div>
-    <div id="asof" style="margin-top:6px"></div>
-    <div style="margin-top:6px">For staff use. Internal planning view; please don't share links outside the church account. Giving, pledge, and member-level data are intentionally not included.</div>
-  </div>
+<footer class="wrap">
+  <div id="links" class="links"></div>
+  <p id="foot"></p>
 </footer>
 
-<script src="data/events.js"></script>
-<script src="data/static.js"></script>
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <div class="sheet"><button class="x" id="mx" aria-label="Close">×</button><div id="mbody"></div></div>
+</div>
+
+<script src="data/data.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

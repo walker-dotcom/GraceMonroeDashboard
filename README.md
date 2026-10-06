@@ -21,3 +21,9 @@ Times are Eastern (`America/New_York`).
 * No giving, pledge, or member-level data (Tier 3; needs Executive Director approval before adding).
 * The campaign host-home tracker (member addresses) is deliberately not included.
 * Staff or ministry-lead approval is needed before anything is published or shared beyond staff.
+
+## Review checklist (before wider release)
+- [ ] Confirm the moment dates and times in `data/data.js` with the ministry leads (Parenting with a Purpose and the DFCS Breakfast have no end time in Planning Center).
+- [ ] Confirm the October–November campaign steps with the campaign team; the launch invitation is still needed.
+- [ ] Replace the header triangle with the official vector mark.
+- [ ] Get written approval from the Executive Director before publishing or adding any giving data.

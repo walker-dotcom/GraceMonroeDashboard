@@ -11,6 +11,17 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<div id="gate" class="gate">
+  <div class="gate-card">
+    <svg class="gate-mark" viewBox="0 0 100 86" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" aria-hidden="true"><path d="M8 6 L92 43 L8 80 Z"/><path d="M8 22 L70 43 L8 64 Z"/><path d="M8 36 L44 43 L8 50 Z"/></svg>
+    <div class="label muted">Grace Monroe</div>
+    <h1 id="g-title">Staff sign-in</h1>
+    <p id="g-msg" class="muted">Checking your account.</p>
+    <div id="g-actions"></div>
+  </div>
+</div>
+
+<div id="app" hidden>
 <header class="top">
   <div class="wrap bar">
     <a class="brand" href="#today" aria-label="Grace Monroe staff dashboard">
@@ -19,6 +30,7 @@
       </svg>
       <span class="wordmark">Grace Monroe</span>
     </a>
+    <button id="signout" class="btn ghost" aria-label="Sign out">Sign out</button>
     <button id="theme" class="btn ghost" aria-label="Toggle light and dark mode">Light / Dark</button>
   </div>
 </header>
@@ -37,7 +49,10 @@
   <div class="sheet"><button class="x" id="mx" aria-label="Close">Close</button><div id="mbody"></div></div>
 </div>
 
+</div>
+
 <script src="data/data.js"></script>
 <script src="app.js"></script>
+<script src="gate.js"></script>
 </body>
 </html>

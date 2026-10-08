@@ -297,3 +297,13 @@ header.top :focus-visible { outline-color:var(--on-marigold); }
 .tile.f:not(.open):hover { border-color:var(--ink); }
 .tile.open.f { border-top:4px solid var(--hb); }
 .tile.f .tp .btn:not(.ghost) { background:var(--c); color:var(--cf); border-color:var(--c); }
+
+/* ---- staff sign-in ---- */
+[hidden] { display:none !important; }
+.gate { display:grid; place-items:center; min-height:100dvh; padding:24px 16px; background:var(--surface); }
+.gate-card { width:min(440px,100%); border:1px solid var(--hair); border-top:6px solid var(--marigold); background:var(--raised); padding:32px 28px 36px; }
+.gate-mark { width:64px; height:55px; color:var(--ink); margin-bottom:20px; }
+.gate-card h1 { font:400 clamp(28px,6vw,36px)/1.1 var(--display); margin:6px 0 10px; letter-spacing:.02em; overflow-wrap:anywhere; }
+.gate-card p { margin:0 0 20px; overflow-wrap:anywhere; }
+#g-actions { display:flex; gap:12px; flex-wrap:wrap; }
+.bar #signout { margin-left:auto; } .bar #theme { margin-left:0; }

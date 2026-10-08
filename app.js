@@ -1,6 +1,6 @@
-(function () {
+window.GMStart = function (D, who) {
   "use strict";
-  var D = window.GM;
+  who = who || {};
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
   var store = {
@@ -82,7 +82,7 @@
     var greet = (real.h < 12 ? "Good morning" : real.h < 17 ? "Good afternoon" : "Good evening");
     $("today").innerHTML = TRI +
       '<div class="label muted rv"><i class="live"></i>' + esc(long(TODAY)) + '</div>' +
-      '<h1 class="rv">' + esc(greet) + ', Grace Monroe.</h1>' +
+      '<h1 class="rv">' + esc(greet) + ', ' + esc(who.first || "Grace Monroe") + '.</h1>' +
       '<p class="muted rv" style="max-width:640px;margin:0">' + esc(D.mission) + ' Tap a tile to open it.</p>';
   }
 
@@ -332,6 +332,7 @@
   }
   function reveal() {}
 
+  if ($("signout")) $("signout").onclick = function () { try { sessionStorage.removeItem("gm-in"); } catch (e) {} location.reload(); };
   $("theme").onclick = function () {
     var root = document.documentElement, dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
     root.setAttribute("data-theme", dark ? "light" : "dark"); store.set("gm-theme", dark ? "light" : "dark");
@@ -339,4 +340,4 @@
   var th = store.get("gm-theme"); if (th) document.documentElement.setAttribute("data-theme", th);
 
   renderShell(); renderHero(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderWord(); renderCampaign(); renderPto(); renderFoot();
-})();
+};

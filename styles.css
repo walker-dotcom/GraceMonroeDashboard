@@ -1,6 +1,6 @@
 /* Grace Monroe design system: black & white, hairline rules, square corners, Sanchez + Jost.
    One accent (slate) used sparingly. Motion is horizontal and quiet, echoing the right-pointing triangles. */
-:root { --marigold:#f2b134; --on-marigold:#000; --steel:#5b6b80; --pale:#dde3ea;
+:root { --marigold:#f2b134; --on-marigold:#000; --steel:#5b6b80; --pale:#dde3ea; --fog:#a7b6c9;
   --surface:#fff; --ink:#000; --muted:#4d4d4d; --raised:#f4f4f4; --hair:#767676; --slate:#363e4b; --on-slate:#fff; --kraft:#bba58a;
   --display:"Sanchez","Rockwell",Georgia,serif; --sans:"Jost","Futura","Century Gothic",system-ui,sans-serif; }
 :root[data-theme="dark"] { --surface:#000; --ink:#fff; --muted:#b3b3b3; --raised:#141414; --hair:#8c8c8c; color-scheme:dark; --slate-ui:#7b8aa0; }
@@ -283,3 +283,17 @@ footer { padding-top:32px; }
 .tile.s .tp .btn:not(.ghost), .tile.b .tp .btn:not(.ghost), .tile.p .tp .btn:not(.ghost), .tile.m .tp .btn:not(.ghost) { background:var(--c); color:var(--cf); border-color:var(--c); }
 .tile .tabs { border-color:var(--c); }
 .tile.camp .tp { background:var(--slate); }
+
+/* ---- marigold header; Celebrations moves to a mid blue-gray (fog) ---- */
+header.top { background:var(--marigold); color:var(--on-marigold); border-bottom:1px solid var(--on-marigold); }
+header.top .brand, header.top .wordmark { color:var(--on-marigold); }
+header.top .btn.ghost { color:var(--on-marigold); border-color:var(--on-marigold); background:transparent; }
+header.top .btn.ghost:hover { background:var(--on-marigold); color:var(--marigold); }
+header.top :focus-visible { outline-color:var(--on-marigold); }
+.tile.f { --hb:var(--fog); --hf:#000; --c:var(--slate-ui); --cf:#fff; border-color:var(--hb); }
+.tile.f .th { background:var(--hb); color:var(--hf); border-bottom:0; }
+.tile.f .ts, .tile.f .tg { color:var(--hf); }
+.tile.f .ts { opacity:.92; }
+.tile.f:not(.open):hover { border-color:var(--ink); }
+.tile.open.f { border-top:4px solid var(--hb); }
+.tile.f .tp .btn:not(.ghost) { background:var(--c); color:var(--cf); border-color:var(--c); }

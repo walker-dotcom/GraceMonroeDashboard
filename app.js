@@ -115,7 +115,7 @@
       { id: "pto", label: "PTO", big: out.length + " out", sub: out.length ? out.map(function (o) { return o.name; }).join(", ") : nextOut ? "Next: " + nextNames + " · " + short(nextOut.from) : "Full team in" }
     ];
   }
-  var TONE = { calendar: "s", giving: "p", attendance: "b", bday: "m", divvy: "p", word: "b", camp: "camp s", pto: "b" }; // tile color: slate, pale, steel, marigold
+  var TONE = { calendar: "s", giving: "p", attendance: "b", bday: "f", divvy: "p", word: "b", camp: "camp s", pto: "b" }; // tile color: slate, pale, steel, fog
   var TRIG = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1 L11 6 L2 11 Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
   function countText(el) { // animate the first whole number in a headline, keep the rest ("10d", "0 out")
     var m = /\d+/.exec(el.textContent); if (!m || reduce) return;

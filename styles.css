@@ -307,3 +307,25 @@ header.top :focus-visible { outline-color:var(--on-marigold); }
 .gate-card p { margin:0 0 20px; overflow-wrap:anywhere; }
 #g-actions { display:flex; gap:12px; flex-wrap:wrap; }
 .bar #signout { margin-left:auto; } .bar #theme { margin-left:0; }
+
+/* ---- mobile app feel: touch, safe areas, tablet, status bar ---- */
+html { -webkit-text-size-adjust:100%; }
+body { -webkit-tap-highlight-color:transparent; overscroll-behavior-y:none; }
+button, a, .tile { touch-action:manipulation; }
+.th, .btn, .tabs button, .step, .qrow, .mc, .ev { -webkit-user-select:none; user-select:none; }
+.btn, .btn.ghost, .tabs button, .x { min-height:44px; }
+header.top { padding-left:env(safe-area-inset-left,0px); padding-right:env(safe-area-inset-right,0px); }
+#app { padding-bottom:calc(64px + env(safe-area-inset-bottom,0px)); }
+.statusbar { position:fixed; left:0; right:0; bottom:0; z-index:25; display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--surface); border-top:1px solid var(--hair); padding:8px max(16px, env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px)); }
+.statusbar .sb-l { display:flex; align-items:center; gap:10px; background:none; border:0; color:var(--ink); font:500 14px var(--sans); min-height:44px; padding:0; cursor:pointer; text-align:left; min-width:0; }
+.statusbar .sb-l span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dotl { flex:none; width:0; height:0; border-left:9px solid var(--hair); border-top:5px solid transparent; border-bottom:5px solid transparent; }
+.statusbar.is-live .dotl { border-left-color:var(--slate-ui); }
+.statusbar .btn.ghost:disabled { opacity:.5; }
+#app.settled .rv { animation:none; }
+#app.settled .ico * { animation:none !important; stroke-dashoffset:0 !important; }
+.tiles { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+@media (min-width:640px) { .tiles { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; } }
+@media (max-width:640px) { .tb { font-size:clamp(26px,8vw,36px); } .hero h1 { font-size:clamp(30px,9vw,44px); } .week .day { flex-basis:84%; } }
+@media (min-width:640px) and (max-width:1000px) { .th { min-height:160px; padding:16px; } .tb { font-size:clamp(24px,3.6vw,34px); } .ico { width:38px; height:38px; } }
+@media (orientation:landscape) and (max-height:480px) { .gate { min-height:0; } .th { min-height:130px; } }

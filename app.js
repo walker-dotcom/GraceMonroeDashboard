@@ -1,6 +1,7 @@
 window.GMStart = function (D, who) {
   "use strict";
   who = who || {};
+  D = JSON.parse(JSON.stringify(D)); // working copy: live results are merged into it
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
   var store = {
@@ -146,10 +147,10 @@ window.GMStart = function (D, who) {
         '<button class="th" aria-expanded="false" aria-controls="p-' + t.id + '" data-t="' + t.id + '"><span class="label">' + t.label + '</span><span class="tb"' + (["attendance", "divvy", "camp", "pto"].indexOf(t.id) > -1 ? ' data-count="1"' : "") + '>' + big + '</span><span class="ts">' + t.sub + '</span><span class="tg">' + TRIG + '<em>Open</em></span><svg class="ico" viewBox="0 0 48 48" aria-hidden="true">' + ICONS[t.id] + '</svg></button>' +
         '<div class="tp" id="p-' + t.id + '" hidden><div id="' + t.id + '"></div></div></div>';
     }).join("");
-    Array.prototype.forEach.call($("tiles").querySelectorAll(".tb[data-count]"), function (el) { countText(el); });
+    Array.prototype.forEach.call($("tiles").querySelectorAll(".tb[data-count]"), function (el) { if (!$("app").classList.contains("settled")) countText(el); });
     Array.prototype.forEach.call($("tiles").querySelectorAll(".th"), function (b) { b.onclick = function () { toggleTile(b.getAttribute("data-t")); }; });
   }
-  function toggleTile(id) {
+  function toggleTile(id, quiet) {
     var open = document.querySelector(".tile.open"), same = open && open.id === "t-" + id;
     if (open) { open.classList.remove("open"); open.querySelector(".th").setAttribute("aria-expanded", "false"); open.querySelector(".tp").hidden = true; open.querySelector(".tg em").textContent = "Open"; }
     if (same) return;
@@ -157,7 +158,7 @@ window.GMStart = function (D, who) {
     if (id === "calendar") { var w = t.querySelector(".week"), td = t.querySelector(".day.today"); if (w && td && window.innerWidth <= 820) w.scrollLeft = td.offsetLeft - 8; }
     if (id === "attendance") renderAttendance();
     if (id === "divvy") sweepRing(t);
-    setTimeout(function () { t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }, 30);
+    if (!quiet) setTimeout(function () { t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }, 30);
   }
 
   // ---------- calendar ----------
@@ -339,5 +340,161 @@ window.GMStart = function (D, who) {
   };
   var th = store.get("gm-theme"); if (th) document.documentElement.setAttribute("data-theme", th);
 
+
+  // ---------- live sync: the viewer's own connectors, refreshed every 15 minutes ----------
+  // The saved snapshot paints first; Planning Center and Slack results are merged over it when this viewer has them connected.
+  var SYNC = { mcp: null, state: {}, at: 0, busy: false }, PCO = "Planning Center", SLK = "Slack", SLACK_CH = "C08777PFT25";
+  var SRC = [["calendar", "Calendar", "Planning Center"], ["attendance", "Attendance", "Planning Center"], ["giving", "Giving", "Planning Center"], ["slack", "Dates, PTO, birthdays", "Slack"]];
+  var fTime = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" });
+  function etParts(utcStr) {
+    var o = {};
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true }).formatToParts(new Date(utcStr)).forEach(function (x) { o[x.type] = x.value; });
+    return { iso: o.year + "-" + o.month + "-" + o.day, t: o.hour + ":" + o.minute + " " + String(o.dayPeriod).toUpperCase() };
+  }
+  function call(server, tool, input) { return SYNC.mcp.callTool(server, tool, input, { cache: false }).then(function (r) { var p = r && r.payload; if (typeof p === "string") { try { p = JSON.parse(p); } catch (e) {} } return p || {}; }); }
+  function pages(tool, input, max) {
+    var out = [];
+    return (function next(tok, n) {
+      var q = Object.assign({}, input); if (tok) q.page_after = tok;
+      return call(PCO, tool, q).then(function (p) { out = out.concat(p.data || []); return p.has_more && p.next_page_token && n < max ? next(p.next_page_token, n + 1) : { data: out, included: p.included || [], meta: p.meta || {} }; });
+    })(null, 1);
+  }
+  function why(e) {
+    var c = e && e.code;
+    return c === "server_not_connected" || c === "selection_required" ? "not connected" : c === "needs_reauth" ? "reconnect needed" : c === "not_in_manifest" || c === "blocked_by_policy" || c === "consent_required" ? "not allowed" : c === "tool_error" ? "no access" : "unavailable";
+  }
+  var words = function (s) { return String(s).toLowerCase().replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean); };
+  var evKey = function (e) { return e.d + "|" + words(e.title).slice(0, 2).join(" "); };
+
+  function pullCalendar() {
+    var lastDay = add(TODAY, 100);
+    return pages("calendar_event_instances", { starts_at_start: TODAY, starts_at_end: lastDay, order_by: "starts_at", per_page: 100, output_fields: ["name", "starts_at", "ends_at", "all_day_event"] }, 4).then(function (r) {
+      var count = {}; r.data.forEach(function (i) { var n = String(i.attributes.name || "").trim().toLowerCase(); count[n] = (count[n] || 0) + 1; });
+      return r.data.filter(function (i) { return count[String(i.attributes.name || "").trim().toLowerCase()] < 3; }).map(function (i) { // repeating events are the weekly rhythm, not dated moments
+        var a = i.attributes, s = etParts(a.starts_at); return { d: s.iso, t: a.all_day_event ? "" : s.t, title: String(a.name || "").trim(), cat: "Church life", src: "pco" };
+      });
+    });
+  }
+  function pullAttendance() {
+    return call(PCO, "check_ins_headcounts", { order_by: "-created_at", per_page: 100, include: ["event_time", "attendance_type"], created_at_start: add(TODAY, -75) }).then(function (p) {
+      var inc = {}; (p.included || []).forEach(function (i) { inc[i.type + i.id] = i.attributes; });
+      var by = {};
+      (p.data || []).forEach(function (h) {
+        var rel = h.relationships || {}, et = inc["EventTime" + ((rel.event_time || {}).data || {}).id], at = inc["AttendanceType" + ((rel.attendance_type || {}).data || {}).id];
+        if (!et || !at) return;
+        var d = etParts(et.starts_at).iso, r = by[d] || (by[d] = { d: d, inPerson: 0, online: 0, n: 0 });
+        if (/online/i.test(at.name)) r.online += h.attributes.total; else { r.inPerson += h.attributes.total; r.n++; }
+      });
+      var old = {}; D.attendance.forEach(function (a) { old[a.d] = a; });
+      var rows = Object.keys(by).sort().map(function (k) { return by[k]; }).filter(function (r) { return r.d <= TODAY && wdOf(r.d) === 0 && (r.inPerson || r.online); }).slice(-8);
+      if (!rows.length) throw { code: "tool_error" };
+      rows.forEach(function (r) { if (r.n < D.services.length) { r.partial = true; r.note = (old[r.d] && old[r.d].note) || "Not every service count is entered yet."; } else if (old[r.d] && old[r.d].note) r.note = old[r.d].note; delete r.n; });
+      D.attendance = rows; var i = rows.length - 1; while (i > 0 && rows[i].partial) i--; selA = i;
+    });
+  }
+  function pullGiving() {
+    var q = parts(TODAY), first = q.y + "-" + p2(q.m) + "-01", py = q.m === 1 ? q.y - 1 : q.y, pm = q.m === 1 ? 12 : q.m - 1;
+    var pDays = new Date(Date.UTC(py, pm, 0)).getUTCDate(), pFirst = py + "-" + p2(pm) + "-01", pSame = py + "-" + p2(pm) + "-" + p2(Math.min(q.d, pDays));
+    var don = function (a, b) { return call(PCO, "giving_donations", { received_at_start: a, received_at_end: b, include_totals: true, per_page: 1, output_fields: ["amount_cents"] }); };
+    var dnr = function (a, b) { return call(PCO, "giving_donors", { received_at_start: a, received_at_end: b, per_page: 1, output_fields: ["id"] }); };
+    return Promise.all([don(first, TODAY), don(pFirst, pSame), dnr(first, TODAY), dnr(pFirst, pSame)]).then(function (r) {
+      var cents = function (p) { return p.meta && p.meta.received_total_amount_cents; }, n = function (p) { return p.meta && p.meta.total_count; };
+      if (cents(r[0]) == null || n(r[2]) == null) throw { code: "tool_error" };
+      D.giving = { asOf: TODAY, mtd: Math.round(cents(r[0]) / 100), lastMonthSameDay: Math.round((cents(r[1]) || 0) / 100), units: n(r[2]), lastMonthUnits: n(r[3]) || 0 };
+    });
+  }
+  function parseImportant(text) {
+    var m = /Upcoming Activities[\s\S]*?\[\d{4}-\d{2}-\d{2}[^\]]*\]/.exec(text); if (!m) throw { code: "tool_error" };
+    var cur = parts(TODAY), yearFor = function (mo) { return cur.y + (mo < cur.m && cur.m - mo > 6 ? 1 : 0); };
+    var section = "act", month = cur.m, acts = [], pto = [], bds = [];
+    m[0].split("\n").forEach(function (raw) {
+      var l = raw.replace(/\*/g, "").replace(/:[a-z_]+:/g, "").trim(); if (!l || l.charAt(0) === "[") return;
+      var bullet = /^[••]\s*/.test(l); l = l.replace(/^[••]\s*/, "").trim();
+      if (!bullet) {
+        if (/out of office/i.test(l)) section = "pto"; else if (/birthdays/i.test(l)) section = "bd"; else if (/upcoming activities/i.test(l)) section = "act";
+        else { var mi = MON.map(function (x) { return x.toLowerCase(); }).indexOf(l.toLowerCase()); if (mi > -1) { month = mi + 1; section = "act"; } }
+        return;
+      }
+      if (section === "act") {
+        var a = /^(\d{1,2})(?:-(\d{1,2}))?\s+-\s+(.+)$/.exec(l); if (!a) return;
+        var title = a[3].trim(), t = "", tm = /^(\d{1,2}(?::\d{2})?)\s?(am|pm)\s+(.*)$/i.exec(title);
+        if (tm) { t = (tm[1].indexOf(":") > -1 ? tm[1] : tm[1] + ":00") + " " + tm[2].toUpperCase(); title = tm[3]; }
+        var y = yearFor(month), e = { d: y + "-" + p2(month) + "-" + p2(+a[1]), t: t, title: title.replace(/\s*\([^)]*\)\s*$/, "").trim(), cat: "Church life", key: true, src: "slack" };
+        var note = /\(([^)]*)\)\s*$/.exec(title); if (note) e.note = note[1];
+        if (a[2]) e.end = y + "-" + p2(month) + "-" + p2(+a[2]);
+        acts.push(e);
+      } else if (section === "pto") {
+        var ix = l.indexOf(" - "); if (ix < 0) return;
+        var name = l.slice(0, ix).trim(), segs = l.slice(ix + 3).split(","), mo = cur.m, rows = [];
+        segs.forEach(function (sg) {
+          var k = /\(([^)]+)\)/.exec(sg), d = /^(?:([A-Za-z]{3})[a-z]*\.?\s+)?(\d{1,2})(?:\s*-\s*(\d{1,2}))?$/.exec(sg.replace(/\([^)]*\)/, "").trim());
+          if (!d) return;
+          if (d[1]) { var mi2 = MON.map(function (x) { return x.slice(0, 3).toLowerCase(); }).indexOf(d[1].toLowerCase()); if (mi2 > -1) mo = mi2 + 1; }
+          var yy = yearFor(mo); rows.push({ name: name, from: yy + "-" + p2(mo) + "-" + p2(+d[2]), to: yy + "-" + p2(mo) + "-" + p2(+(d[3] || d[2])), kind: k ? k[1].trim() : "" });
+        });
+        var carry = "PTO"; for (var r = rows.length - 1; r >= 0; r--) { if (rows[r].kind) carry = rows[r].kind; else rows[r].kind = carry; rows[r].kind = /^conference/i.test(rows[r].kind) ? "Conference" : rows[r].kind; }
+        pto = pto.concat(rows);
+      } else if (section === "bd") {
+        var b = /^(.+?)\s+-\s+([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})$/.exec(l); if (!b) return;
+        var bi = MON.map(function (x) { return x.slice(0, 3).toLowerCase(); }).indexOf(b[2].toLowerCase()); if (bi > -1) bds.push({ name: b[1].trim(), md: p2(bi + 1) + "-" + p2(+b[3]) });
+      }
+    });
+    return { acts: acts, pto: pto, bds: bds };
+  }
+  function pullSlack() {
+    return call(SLK, "slack_read_channel", { channel_id: SLACK_CH, limit: 6, response_format: "concise" }).then(function (p) {
+      var text = typeof p === "string" ? p : (p && p.messages) || ""; var r = parseImportant(text);
+      D.pto = r.pto; if (r.bds.length) D.birthdays = r.bds; return r.acts;
+    });
+  }
+  function mergeEvents(pco, slack) {
+    var map = {}, order = [];
+    var put = function (e) { var k = evKey(e), x = map[k]; if (!x) { map[k] = e; order.push(k); } else { ["t", "note", "end", "cat"].forEach(function (f) { if (!x[f] && e[f]) x[f] = e[f]; }); x.key = x.key || e.key; } };
+    D.events.forEach(function (e) { if (!pco || e.d < TODAY || e.key) put(e); });  // curated moments and anything already past stay
+    (slack || []).forEach(put);
+    var curated = {}; order.forEach(function (k) { curated[k] = 1; });
+    (pco || []).forEach(function (e) { if (!curated[evKey(e)] && /birthday|baby shower|party|wedding|funeral|memorial|rental|private/i.test(e.title)) return; put(e); }); // private rentals stay off the staff view unless Slack announced them
+    D.events = order.map(function (k) { return map[k]; }).sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
+  }
+  function rerender() {
+    var open = document.querySelector(".tile.open"), id = open ? open.id.slice(2) : null;
+    renderShell(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderWord(); renderCampaign(); renderPto();
+    if (id) toggleTile(id, true);
+  }
+  function setBar() {
+    var ok = SRC.filter(function (s) { return SYNC.state[s[0]] === "live"; }).length, bar = $("statusbar"); if (!bar) return;
+    var txt = SYNC.busy ? "Updating..." : ok ? "Live · updated " + fTime.format(new Date(SYNC.at)) + (ok < SRC.length ? " · " + (SRC.length - ok) + " saved" : "") : "Saved copy · " + short(D.asOf);
+    $("sb-text").textContent = txt; bar.classList.toggle("is-live", ok > 0 && !SYNC.busy); $("refresh").disabled = SYNC.busy;
+  }
+  function showSources() {
+    var rows = SRC.map(function (s) {
+      var st = SYNC.state[s[0]]; var label = st === "live" ? "Live" : st && st !== "saved" ? "Saved copy · " + esc(st) : "Saved copy";
+      return '<div class="row"><span><b>' + esc(s[1]) + '</b> <span class="muted">' + esc(s[2]) + '</span></span><span class="cap">' + label + '</span></div>';
+    }).join("");
+    openModal('<div class="label muted">Data sources</div><h2 id="m-title" style="margin:6px 0 12px">What is live</h2>' + rows +
+      '<p class="cap" style="margin-top:14px">Live data comes from your own Planning Center and Slack connections in Claude and refreshes every 15 minutes. Anything not live shows the saved copy from ' + esc(short(D.asOf)) + '. Giving needs a Planning Center login with Giving access. Campaign details are updated by the team.</p>');
+  }
+  async function refresh() {
+    if (SYNC.busy || !SYNC.mcp) return; SYNC.busy = true; setBar();
+    var out = {}, pco = null, slack = null;
+    var run = function (key, fn) { return fn().then(function (v) { SYNC.state[key] = "live"; return v; }, function (e) { SYNC.state[key] = why(e); return null; }); };
+    await Promise.all([run("calendar", pullCalendar).then(function (v) { pco = v; }), run("attendance", pullAttendance), run("giving", pullGiving), run("slack", pullSlack).then(function (v) { slack = v; })]);
+    if (SYNC.state.calendar === "live" || SYNC.state.slack === "live") mergeEvents(pco, slack);
+    SYNC.busy = false; if (SRC.some(function (s) { return SYNC.state[s[0]] === "live"; })) SYNC.at = Date.now();
+    rerender(); setBar();
+  }
+  function startSync() {
+    $("srcs").onclick = showSources; $("refresh").onclick = function () { refresh(); };
+    setBar();
+    if (!window.claude || !window.claude.use) return;
+    window.claude.use("mcp").then(function (m) {
+      if (!m) return; SYNC.mcp = m; refresh();
+      setInterval(function () { if (!document.hidden) refresh(); }, 15 * 60 * 1000);
+      document.addEventListener("visibilitychange", function () { if (!document.hidden && Date.now() - SYNC.at > 5 * 60 * 1000) refresh(); });
+    }, function () {});
+  }
+
   renderShell(); renderHero(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderWord(); renderCampaign(); renderPto(); renderFoot();
+  setTimeout(function () { $("app").classList.add("settled"); }, 2600);
+  startSync();
 };

@@ -1,0 +1,16 @@
+{
+  "name": "Grace Monroe Staff Dashboard",
+  "short_name": "GM Staff",
+  "description": "Calendar, attendance, giving, celebrations, Divvy reminders, the Sunday word, Bold Springs Campaign and PTO for Grace Monroe staff.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#f2b134",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

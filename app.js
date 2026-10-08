@@ -83,7 +83,7 @@
     $("today").innerHTML = TRI +
       '<div class="label muted rv"><i class="live"></i>' + esc(long(TODAY)) + '</div>' +
       '<h1 class="rv">' + esc(greet) + ', Grace Monroe.</h1>' +
-      '<p class="muted rv" style="max-width:640px;margin:0">' + esc(D.mission) + ' Tap a tile to open it.</p><div class="ribbon" aria-hidden="true"></div>';
+      '<p class="muted rv" style="max-width:640px;margin:0">' + esc(D.mission) + ' Tap a tile to open it.</p>';
   }
 
   // ---------- tiles: a summary on the front, the detail opens in place ----------
@@ -105,12 +105,12 @@
     var launchN = diff(TODAY, D.campaign.steps[2].start), q = store.get("gm-quote") || D.sermon.quote, G = D.giving;
     var rel = function (iso) { var n = diff(TODAY, iso); return n === 0 ? "Today" : n < 7 ? WD[wdOf(iso)].slice(0, 3) : short(iso); };
     return [
-      { id: "calendar", label: "Calendar", big: nk ? rel(nk.d) : "Open", sub: nk ? nk.title : "Week, month, quarter" },
+      { id: "calendar", label: "Calendar", big: nk ? rel(nk.d) : "Open", sub: nk ? nk.title : "Week, month, quarter", cls: "m" },
       { id: "giving", label: "Giving", big: G ? "$" + G.mtd.toLocaleString() : "$ — —", sub: G ? G.units + " giving units this month" : "Not connected yet" },
-      { id: "attendance", label: "Attendance", big: String(cur.inPerson), sub: short(cur.d) + " · " + (cur.inPerson >= avg ? "+" : "") + (cur.inPerson - avg) + " vs 4-week avg" },
-      { id: "bday", label: "Celebrations", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up" },
+      { id: "attendance", label: "Attendance", big: String(cur.inPerson), sub: short(cur.d) + " · " + (cur.inPerson >= avg ? "+" : "") + (cur.inPerson - avg) + " vs 4-week avg", cls: "t" },
+      { id: "bday", label: "Celebrations", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up", cls: "m" },
       { id: "divvy", label: "Divvy reminder", big: diff(TODAY, dv) + "d", sub: long(dv) },
-      { id: "word", label: "Sunday word", big: D.sermon.series, sub: q ? "&ldquo;" + esc(q.length > 60 ? q.slice(0, 57) + "..." : q) + "&rdquo;" : "Add this week's quote" },
+      { id: "word", label: "Sunday word", big: D.sermon.series, sub: q ? "&ldquo;" + esc(q.length > 60 ? q.slice(0, 57) + "..." : q) + "&rdquo;" : "Add this week's quote", cls: "t" },
       { id: "camp", label: "Bold Springs", big: launchN > 0 ? launchN + "d" : launchN === 0 ? "Today" : "Live", sub: launchN > 0 ? "to launch · " + short(D.campaign.steps[2].start) : "Campaign under way", cls: "camp" },
       { id: "pto", label: "PTO", big: out.length + " out", sub: out.length ? out.map(function (o) { return o.name; }).join(", ") : nextOut ? "Next: " + nextNames + " · " + short(nextOut.from) : "Full team in" }
     ];

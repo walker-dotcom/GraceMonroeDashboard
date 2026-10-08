@@ -1,6 +1,7 @@
 /* Grace Monroe design system: black & white, hairline rules, square corners, Sanchez + Jost.
    One accent (slate) used sparingly. Motion is horizontal and quiet, echoing the right-pointing triangles. */
-:root { --surface:#fff; --ink:#000; --muted:#4d4d4d; --raised:#f4f4f4; --hair:#767676; --slate:#363e4b; --on-slate:#fff; --kraft:#bba58a;
+:root { --marigold:#f2b134; --on-marigold:#000; --teal:#23807a; --on-teal:#fff;
+  --surface:#fff; --ink:#000; --muted:#4d4d4d; --raised:#f4f4f4; --hair:#767676; --slate:#363e4b; --on-slate:#fff; --kraft:#bba58a;
   --display:"Sanchez","Rockwell",Georgia,serif; --sans:"Jost","Futura","Century Gothic",system-ui,sans-serif; }
 :root[data-theme="dark"] { --surface:#000; --ink:#fff; --muted:#b3b3b3; --raised:#141414; --hair:#8c8c8c; color-scheme:dark; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --surface:#000; --ink:#fff; --muted:#b3b3b3; --raised:#141414; --hair:#8c8c8c; color-scheme:dark; } }
@@ -255,3 +256,22 @@ footer { padding-top:32px; }
 .tile.open .ico { width:36px; height:36px; }
 @media (prefers-reduced-motion: reduce) { .ico * { stroke-dashoffset:0 !important; } }
 @media (max-width:420px) { .ico { width:36px; height:36px; right:12px; top:12px; } .th .label { padding-right:42px; } }
+
+/* ---- no moving arrows; two joyful accents (marigold, teal) beside slate ---- */
+.ribbon { display:none; }
+.live { animation:none; }
+.tile:not(.open) .tg svg { animation:none; }
+.tile:hover .ico .mk { transform:none; }
+.tile.m { --c:var(--marigold); --cf:var(--on-marigold); }
+.tile.t { --c:var(--teal); --cf:var(--on-teal); }
+.tile.m, .tile.t { border-color:var(--c); }
+.tile.m .th, .tile.t .th { background:var(--c); color:var(--cf); border-bottom:0; }
+.tile.m .ts, .tile.t .ts, .tile.m .tg, .tile.t .tg { color:var(--cf); }
+.tile.m .ts, .tile.t .ts { opacity:.92; }
+.tile.m:not(.open):hover, .tile.t:not(.open):hover { border-color:var(--ink); }
+.tile.open { border-top:4px solid var(--c); }
+.tile .tabs { border-color:var(--c); }
+.tile .tabs button[aria-selected="true"] { background:var(--c); color:var(--cf); }
+.tile .day.today, .tile .mc.today { background:var(--c); color:var(--cf); }
+.tile.m .tp .btn:not(.ghost), .tile.t .tp .btn:not(.ghost) { background:var(--c); color:var(--cf); border-color:var(--c); }
+.tile .bar-in { background:var(--c); } .tile.t .bar-col.sel .bar-in { filter:brightness(1.2); }

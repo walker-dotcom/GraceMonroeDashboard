@@ -81,9 +81,9 @@
   function renderHero() {
     var greet = (real.h < 12 ? "Good morning" : real.h < 17 ? "Good afternoon" : "Good evening");
     $("today").innerHTML = TRI +
-      '<div class="label muted rv">' + esc(long(TODAY)) + '</div>' +
+      '<div class="label muted rv"><i class="live"></i>' + esc(long(TODAY)) + '</div>' +
       '<h1 class="rv">' + esc(greet) + ', Grace Monroe.</h1>' +
-      '<p class="muted rv" style="max-width:640px;margin:0">' + esc(D.mission) + ' Tap a tile to open it.</p>';
+      '<p class="muted rv" style="max-width:640px;margin:0">' + esc(D.mission) + ' Tap a tile to open it.</p><div class="ribbon" aria-hidden="true"></div>';
   }
 
   // ---------- tiles: a summary on the front, the detail opens in place ----------
@@ -116,13 +116,25 @@
     ];
   }
   var TRIG = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1 L11 6 L2 11 Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+  function countText(el) { // animate the first whole number in a headline, keep the rest ("10d", "0 out")
+    var m = /\d+/.exec(el.textContent); if (!m || reduce) return;
+    var to = +m[0], pre = el.textContent.slice(0, m.index), post = el.textContent.slice(m.index + m[0].length), t0 = performance.now() + 350;
+    el.textContent = pre + "0" + post;
+    (function f(t) { if (t < t0) return requestAnimationFrame(f); var k = Math.min(1, (t - t0) / 1100); el.textContent = pre + Math.round(to * (1 - Math.pow(1 - k, 3))) + post; if (k < 1) requestAnimationFrame(f); })(performance.now());
+  }
+  function sweepRing(root) {
+    var r = root.querySelector(".ring"); if (!r || reduce) return;
+    var to = +r.style.getPropertyValue("--p"), t0 = performance.now();
+    (function f(t) { var k = Math.min(1, (t - t0) / 900); r.style.setProperty("--p", to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); })(t0);
+  }
   function renderShell() {
     $("tiles").innerHTML = tileData().map(function (t, i) {
       var big = t.id === "word" ? esc(t.big) : t.big;
       return '<div class="tile rv' + (t.cls ? " " + t.cls : "") + '" id="t-' + t.id + '" style="animation-delay:' + i * 50 + 'ms">' +
-        '<button class="th" aria-expanded="false" aria-controls="p-' + t.id + '" data-t="' + t.id + '"><span class="label">' + t.label + '</span><span class="tb">' + big + '</span><span class="ts">' + t.sub + '</span><span class="tg">' + TRIG + '<em>Open</em></span></button>' +
+        '<button class="th" aria-expanded="false" aria-controls="p-' + t.id + '" data-t="' + t.id + '"><span class="label">' + t.label + '</span><span class="tb"' + (["attendance", "divvy", "camp", "pto"].indexOf(t.id) > -1 ? ' data-count="1"' : "") + '>' + big + '</span><span class="ts">' + t.sub + '</span><span class="tg">' + TRIG + '<em>Open</em></span><svg class="ttri" viewBox="0 0 130 110" aria-hidden="true"><path d="M6 6 L124 55 L6 104 Z"/><path d="M6 30 L86 55 L6 80 Z"/><path d="M6 44 L48 55 L6 66 Z"/></svg></button>' +
         '<div class="tp" id="p-' + t.id + '" hidden><div id="' + t.id + '"></div></div></div>';
     }).join("");
+    Array.prototype.forEach.call($("tiles").querySelectorAll(".tb[data-count]"), function (el) { countText(el); });
     Array.prototype.forEach.call($("tiles").querySelectorAll(".th"), function (b) { b.onclick = function () { toggleTile(b.getAttribute("data-t")); }; });
   }
   function toggleTile(id) {
@@ -132,6 +144,7 @@
     var t = $("t-" + id); t.classList.add("open"); t.querySelector(".th").setAttribute("aria-expanded", "true"); t.querySelector(".tp").hidden = false; t.querySelector(".tg em").textContent = "Close";
     if (id === "calendar") { var w = t.querySelector(".week"), td = t.querySelector(".day.today"); if (w && td && window.innerWidth <= 820) w.scrollLeft = td.offsetLeft - 8; }
     if (id === "attendance") renderAttendance();
+    if (id === "divvy") sweepRing(t);
     setTimeout(function () { t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }, 30);
   }
 

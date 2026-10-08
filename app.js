@@ -105,16 +105,17 @@
     var launchN = diff(TODAY, D.campaign.steps[2].start), q = store.get("gm-quote") || D.sermon.quote, G = D.giving;
     var rel = function (iso) { var n = diff(TODAY, iso); return n === 0 ? "Today" : n < 7 ? WD[wdOf(iso)].slice(0, 3) : short(iso); };
     return [
-      { id: "calendar", label: "Calendar", big: nk ? rel(nk.d) : "Open", sub: nk ? nk.title : "Week, month, quarter", cls: "m" },
+      { id: "calendar", label: "Calendar", big: nk ? rel(nk.d) : "Open", sub: nk ? nk.title : "Week, month, quarter" },
       { id: "giving", label: "Giving", big: G ? "$" + G.mtd.toLocaleString() : "$ — —", sub: G ? G.units + " giving units this month" : "Not connected yet" },
-      { id: "attendance", label: "Attendance", big: String(cur.inPerson), sub: short(cur.d) + " · " + (cur.inPerson >= avg ? "+" : "") + (cur.inPerson - avg) + " vs 4-week avg", cls: "t" },
-      { id: "bday", label: "Celebrations", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up", cls: "m" },
+      { id: "attendance", label: "Attendance", big: String(cur.inPerson), sub: short(cur.d) + " · " + (cur.inPerson >= avg ? "+" : "") + (cur.inPerson - avg) + " vs 4-week avg" },
+      { id: "bday", label: "Celebrations", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up" },
       { id: "divvy", label: "Divvy reminder", big: diff(TODAY, dv) + "d", sub: long(dv) },
-      { id: "word", label: "Sunday word", big: D.sermon.series, sub: q ? "&ldquo;" + esc(q.length > 60 ? q.slice(0, 57) + "..." : q) + "&rdquo;" : "Add this week's quote", cls: "t" },
-      { id: "camp", label: "Bold Springs", big: launchN > 0 ? launchN + "d" : launchN === 0 ? "Today" : "Live", sub: launchN > 0 ? "to launch · " + short(D.campaign.steps[2].start) : "Campaign under way", cls: "camp" },
+      { id: "word", label: "Sunday word", big: D.sermon.series, sub: q ? "&ldquo;" + esc(q.length > 60 ? q.slice(0, 57) + "..." : q) + "&rdquo;" : "Add this week's quote" },
+      { id: "camp", label: "Bold Springs", big: launchN > 0 ? launchN + "d" : launchN === 0 ? "Today" : "Live", sub: launchN > 0 ? "to launch · " + short(D.campaign.steps[2].start) : "Campaign under way" },
       { id: "pto", label: "PTO", big: out.length + " out", sub: out.length ? out.map(function (o) { return o.name; }).join(", ") : nextOut ? "Next: " + nextNames + " · " + short(nextOut.from) : "Full team in" }
     ];
   }
+  var TONE = { calendar: "s", giving: "p", attendance: "b", bday: "m", divvy: "p", word: "b", camp: "camp s", pto: "b" }; // tile color: slate, pale, steel, marigold
   var TRIG = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1 L11 6 L2 11 Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
   function countText(el) { // animate the first whole number in a headline, keep the rest ("10d", "0 out")
     var m = /\d+/.exec(el.textContent); if (!m || reduce) return;
@@ -141,7 +142,7 @@
   function renderShell() {
     $("tiles").innerHTML = tileData().map(function (t, i) {
       var big = t.id === "word" ? esc(t.big) : t.big;
-      return '<div class="tile rv' + (t.cls ? " " + t.cls : "") + '" id="t-' + t.id + '" style="animation-delay:' + i * 50 + 'ms">' +
+      return '<div class="tile rv ' + TONE[t.id] + '" id="t-' + t.id + '" style="animation-delay:' + i * 50 + 'ms">' +
         '<button class="th" aria-expanded="false" aria-controls="p-' + t.id + '" data-t="' + t.id + '"><span class="label">' + t.label + '</span><span class="tb"' + (["attendance", "divvy", "camp", "pto"].indexOf(t.id) > -1 ? ' data-count="1"' : "") + '>' + big + '</span><span class="ts">' + t.sub + '</span><span class="tg">' + TRIG + '<em>Open</em></span><svg class="ico" viewBox="0 0 48 48" aria-hidden="true">' + ICONS[t.id] + '</svg></button>' +
         '<div class="tp" id="p-' + t.id + '" hidden><div id="' + t.id + '"></div></div></div>';
     }).join("");

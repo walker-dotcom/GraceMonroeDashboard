@@ -1,9 +1,9 @@
 /* Grace Monroe design system: black & white, hairline rules, square corners, Sanchez + Jost.
    One accent (slate) used sparingly. Motion is horizontal and quiet, echoing the right-pointing triangles. */
-:root { --marigold:#f2b134; --on-marigold:#000; --teal:#23807a; --on-teal:#fff;
+:root { --marigold:#f2b134; --on-marigold:#000; --steel:#5b6b80; --pale:#dde3ea;
   --surface:#fff; --ink:#000; --muted:#4d4d4d; --raised:#f4f4f4; --hair:#767676; --slate:#363e4b; --on-slate:#fff; --kraft:#bba58a;
   --display:"Sanchez","Rockwell",Georgia,serif; --sans:"Jost","Futura","Century Gothic",system-ui,sans-serif; }
-:root[data-theme="dark"] { --surface:#000; --ink:#fff; --muted:#b3b3b3; --raised:#141414; --hair:#8c8c8c; color-scheme:dark; }
+:root[data-theme="dark"] { --surface:#000; --ink:#fff; --muted:#b3b3b3; --raised:#141414; --hair:#8c8c8c; color-scheme:dark; --slate-ui:#7b8aa0; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --surface:#000; --ink:#fff; --muted:#b3b3b3; --raised:#141414; --hair:#8c8c8c; color-scheme:dark; } }
 
 * { box-sizing:border-box; }
@@ -262,16 +262,24 @@ footer { padding-top:32px; }
 .live { animation:none; }
 .tile:not(.open) .tg svg { animation:none; }
 .tile:hover .ico .mk { transform:none; }
-.tile.m { --c:var(--marigold); --cf:var(--on-marigold); }
-.tile.t { --c:var(--teal); --cf:var(--on-teal); }
-.tile.m, .tile.t { border-color:var(--c); }
-.tile.m .th, .tile.t .th { background:var(--c); color:var(--cf); border-bottom:0; }
-.tile.m .ts, .tile.t .ts, .tile.m .tg, .tile.t .tg { color:var(--cf); }
-.tile.m .ts, .tile.t .ts { opacity:.92; }
-.tile.m:not(.open):hover, .tile.t:not(.open):hover { border-color:var(--ink); }
-.tile.open { border-top:4px solid var(--c); }
 .tile .tabs { border-color:var(--c); }
 .tile .tabs button[aria-selected="true"] { background:var(--c); color:var(--cf); }
 .tile .day.today, .tile .mc.today { background:var(--c); color:var(--cf); }
-.tile.m .tp .btn:not(.ghost), .tile.t .tp .btn:not(.ghost) { background:var(--c); color:var(--cf); border-color:var(--c); }
-.tile .bar-in { background:var(--c); } .tile.t .bar-col.sel .bar-in { filter:brightness(1.2); }
+
+/* ---- blue-gray scheme: slate, steel, pale blue-gray, one marigold accent ---- */
+:root { --slate-ui:var(--slate); }
+:root[data-theme="dark"] { --slate-ui:#7b8aa0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --slate-ui:#7b8aa0; } }
+.tile.s { --hb:var(--slate); --hf:#fff; --c:var(--slate-ui); --cf:#fff; }
+.tile.b { --hb:var(--steel); --hf:#fff; --c:var(--steel); --cf:#fff; }
+.tile.p { --hb:var(--pale); --hf:#000; --c:var(--slate-ui); --cf:#fff; }
+.tile.m { --hb:var(--marigold); --hf:var(--on-marigold); --c:var(--marigold); --cf:var(--on-marigold); }
+.tile.s, .tile.b, .tile.p, .tile.m { border-color:var(--hb); }
+.tile.s .th, .tile.b .th, .tile.p .th, .tile.m .th { background:var(--hb); color:var(--hf); border-bottom:0; }
+.tile.s .ts, .tile.b .ts, .tile.p .ts, .tile.m .ts, .tile.s .tg, .tile.b .tg, .tile.p .tg, .tile.m .tg { color:var(--hf); }
+.tile.s .ts, .tile.b .ts, .tile.p .ts, .tile.m .ts { opacity:.92; }
+.tile.s:not(.open):hover, .tile.b:not(.open):hover, .tile.p:not(.open):hover, .tile.m:not(.open):hover { border-color:var(--ink); }
+.tile.open.s, .tile.open.b, .tile.open.p, .tile.open.m { border-top:4px solid var(--hb); }
+.tile.s .tp .btn:not(.ghost), .tile.b .tp .btn:not(.ghost), .tile.p .tp .btn:not(.ghost), .tile.m .tp .btn:not(.ghost) { background:var(--c); color:var(--cf); border-color:var(--c); }
+.tile .tabs { border-color:var(--c); }
+.tile.camp .tp { background:var(--slate); }

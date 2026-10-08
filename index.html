@@ -47,11 +47,11 @@
 
 <main>
   <section id="today" class="wrap hero"></section>
+  <section id="ask" class="wrap ask" hidden></section>
   <section id="tiles" class="wrap tiles" aria-label="Dashboard"></section>
 </main>
 
 <footer class="wrap">
-  <div id="links" class="links"></div>
   <p id="foot" class="cap"></p>
 </footer>
 
@@ -68,6 +68,7 @@
 
 <script src="data/data.js"></script>
 <script src="app.js"></script>
+<script src="ask.js"></script>
 <script src="gate.js"></script>
 <!--pwa-->
 <script>if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(function () {});</script>

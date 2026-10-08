@@ -328,7 +328,6 @@ window.GMStart = function (D, who) {
 
   // ---------- footer, reveal, theme, nav ----------
   function renderFoot() {
-    $("links").innerHTML = D.links.map(function (l) { return '<a href="' + esc(l.u) + '" target="_blank" rel="noopener">' + esc(l.l) + '</a>'; }).join("");
     $("foot").textContent = "Staff only. Data as of " + short(D.asOf) + " from Planning Center, Google Drive and Slack. Times Eastern.";
   }
   function reveal() {}
@@ -497,4 +496,5 @@ window.GMStart = function (D, who) {
   renderShell(); renderHero(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderWord(); renderCampaign(); renderPto(); renderFoot();
   setTimeout(function () { $("app").classList.add("settled"); }, 2600);
   startSync();
+  if (window.GMAsk) window.GMAsk(who);
 };

@@ -7,6 +7,9 @@ Built with the "Grace Monroe" design system (slate and blue-gray palette, marigo
 - **Today: a Claude artifact.** Staff sign-in (Grace Monroe organization members only), a personal greeting, saved data in the artifact database, and live data from each viewer's own Planning Center and Slack connections.
 - **Next: a PWA from this repo.** `manifest.webmanifest`, `sw.js` and `icons/` are ready. Open `index.html` locally to preview (no sign-in or live sync outside Claude).
 
+## Ask Grace Monroe
+A search card at the top of the dashboard (`ask.js`). Staff ask a question about the handbook, SOPs or policies; Claude searches Google Drive (and public Slack channels) with the viewer's own access, reads the best matches and answers in the conversation view, ending with the document name and its link in the answer text. It answers only from documents it finds, says so when it can't, and sends anything about a specific person or situation (HR, safeguarding, legal, pastoral) to Julie Marijanich. Needs the Claude runtime, so the card is hidden outside it.
+
 ## Data and how it stays current
 | Section | Saved copy (artifact database `dashboard/data`, seeded from `data/data.js`) | Live refresh (every 15 min, on return to the app, and the Refresh button) |
 |---|---|---|

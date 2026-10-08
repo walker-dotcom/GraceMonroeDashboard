@@ -59,53 +59,80 @@
     }
   }
 
-  // ---------- modal + .ics ----------
+  // ---------- modal ----------
   var modal = $("modal");
   function openModal(html) { $("mbody").innerHTML = html; modal.hidden = false; $("mx").focus(); }
   function closeModal() { modal.hidden = true; }
   $("mx").onclick = closeModal;
   modal.addEventListener("click", function (e) { if (e.target === modal) closeModal(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
-  function ics(title, iso, endIso) {
+  function gcal(title, iso, endIso) {
     var s = iso.replace(/-/g, ""), e = add(endIso || iso, 1).replace(/-/g, "");
-    var txt = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Grace Monroe//Staff Dashboard//EN", "BEGIN:VEVENT", "UID:" + s + "-" + encodeURIComponent(title) + "@gracemonroe", "DTSTAMP:" + s + "T000000Z",
-      "DTSTART;VALUE=DATE:" + s, "DTEND;VALUE=DATE:" + e, "SUMMARY:" + title.replace(/[,;]/g, " "), "END:VEVENT", "END:VCALENDAR"].join("\r\n");
-    return "data:text/calendar;charset=utf-8," + encodeURIComponent(txt);
+    return "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(title) + "&dates=" + s + "/" + e;
   }
   window.gmEvent = function (iso, idx) {
     var e = eventsOn(iso)[idx]; if (!e) return;
     openModal('<div class="label muted">' + esc(e.cat) + '</div><h2 id="m-title" style="margin:6px 0 12px">' + esc(e.title) + '</h2>' +
       '<p>' + esc(long(iso)) + (e.end && e.end !== iso ? " to " + esc(short(e.end)) : "") + (e.t ? " · " + esc(e.t) : "") + '</p>' + (e.note ? '<p class="muted">' + esc(e.note) + '</p>' : "") +
-      '<p><a class="btn" style="display:inline-block;text-decoration:none" download="' + esc(e.title) + '.ics" href="' + ics(e.title, iso, e.end) + '">Add to calendar</a></p>');
+      '<p><a class="btn" style="display:inline-block;text-decoration:none" target="_blank" rel="noopener" href="' + gcal(e.title, iso, e.end) + '">Add to Google Calendar</a></p>');
   };
 
   // ---------- hero ----------
-  function nextSunday() {
-    // 9:00 AM Eastern on the next Sunday that has not started (approximate with ET wall-clock)
-    var iso = TODAY, w = wdOf(iso);
-    if (w === 0 && TODAY === real.iso && real.h >= 12) w = 7; // after services: aim for next week
-    if (w === 0 && TODAY !== real.iso) w = 0;
-    return add(iso, w === 0 ? 0 : 7 - w);
-  }
   function renderHero() {
-    var sun = nextSunday(), dv = nextDom(D.divvy.days, TODAY);
-    var out = outOn(TODAY), q = parts(TODAY);
-    var last = D.attendance.filter(function (a) { return !a.partial; }).slice(-1)[0];
-    var launch = D.campaign.steps[2].start, lc = diff(TODAY, launch);
     var greet = (real.h < 12 ? "Good morning" : real.h < 17 ? "Good afternoon" : "Good evening");
     $("today").innerHTML = TRI +
       '<div class="label muted rv">' + esc(long(TODAY)) + '</div>' +
       '<h1 class="rv">' + esc(greet) + ', Grace Monroe.</h1>' +
-      '<p class="muted rv" style="max-width:640px;margin:0">' + esc(D.mission) + '</p>' +
-      '<div class="stats rv">' +
-      '<button class="stat" data-go="calendar"><span class="label muted">Next Sunday</span><span class="n">' + diff(TODAY, sun) + 'd</span><span class="cap">' + esc(short(sun)) + ' · 9 &amp; 11 AM</span></button>' +
-      '<button class="stat" data-go="divvy"><span class="label muted">Divvy reminder</span><span class="n">' + diff(TODAY, dv) + 'd</span><span class="cap">' + esc(short(dv)) + '</span></button>' +
-      '<button class="stat" data-go="pto"><span class="label muted">Out today</span><span class="n">' + out.length + '</span><span class="cap">' + (out.length ? esc(out.map(function (o) { return o.name; }).join(", ")) : "Full team in") + '</span></button>' +
-      '<button class="stat" data-go="campaign"><span class="label muted">Campaign launch</span><span class="n">' + (lc > 0 ? lc + "d" : lc === 0 ? "Today" : "Live") + '</span><span class="cap">' + esc(short(launch)) + '</span></button>' +
-      '</div>';
-    Array.prototype.forEach.call(document.querySelectorAll(".stat"), function (b) {
-      b.onclick = function () { var t = $(b.getAttribute("data-go")) || $(b.getAttribute("data-go") === "divvy" ? "people" : "today"); if (t) t.scrollIntoView({ behavior: reduce ? "auto" : "smooth" }); };
+      '<p class="muted rv" style="max-width:640px;margin:0">' + esc(D.mission) + ' Tap a tile to open it.</p>';
+  }
+
+  // ---------- tiles: a summary on the front, the detail opens in place ----------
+  function nextBirthday() {
+    var yr = parts(TODAY).y, best = null;
+    D.birthdays.forEach(function (b) {
+      var iso = yr + "-" + b.md; if (iso < TODAY) iso = (yr + 1) + "-" + b.md;
+      if (!best || iso < best.iso) best = { name: b.name, iso: iso };
     });
+    return best;
+  }
+  function tileData() {
+    var nk = D.events.filter(function (e) { return e.key && e.d >= TODAY; })[0];
+    var done = D.attendance.filter(function (a) { return !a.partial; }), cur = done[done.length - 1];
+    var avg = Math.round(done.slice(-4).reduce(function (s, a) { return s + a.inPerson; }, 0) / Math.min(4, done.length));
+    var dv = nextDom(D.divvy.days, TODAY), bd = nextBirthday(), out = outOn(TODAY);
+    var nextOut = D.pto.filter(function (p) { return p.from > TODAY; })[0];
+    var nextNames = nextOut ? D.pto.filter(function (p) { return p.from === nextOut.from; }).map(function (p) { return p.name; }).join(", ") : "";
+    var launchN = diff(TODAY, D.campaign.steps[2].start), q = store.get("gm-quote") || D.sermon.quote, G = D.giving;
+    var rel = function (iso) { var n = diff(TODAY, iso); return n === 0 ? "Today" : n < 7 ? WD[wdOf(iso)].slice(0, 3) : short(iso); };
+    return [
+      { id: "calendar", label: "Calendar", big: nk ? rel(nk.d) : "Open", sub: nk ? nk.title : "Week, month, quarter" },
+      { id: "giving", label: "Giving", big: G ? "$" + G.mtd.toLocaleString() : "$ — —", sub: G ? G.units + " giving units this month" : "Not connected yet" },
+      { id: "attendance", label: "Attendance", big: String(cur.inPerson), sub: short(cur.d) + " · " + (cur.inPerson >= avg ? "+" : "") + (cur.inPerson - avg) + " vs 4-week avg" },
+      { id: "bday", label: "Birthdays &amp; anniversaries", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up" },
+      { id: "divvy", label: "Divvy reminder", big: diff(TODAY, dv) + "d", sub: long(dv) },
+      { id: "word", label: "Sunday word", big: D.sermon.series, sub: q ? "&ldquo;" + esc(q.length > 60 ? q.slice(0, 57) + "..." : q) + "&rdquo;" : "Add this week's quote" },
+      { id: "camp", label: "Bold Springs", big: launchN > 0 ? launchN + "d" : launchN === 0 ? "Today" : "Live", sub: launchN > 0 ? "to launch · " + short(D.campaign.steps[2].start) : "Campaign under way", cls: "camp" },
+      { id: "pto", label: "PTO", big: out.length + " out", sub: out.length ? out.map(function (o) { return o.name; }).join(", ") : nextOut ? "Next: " + nextNames + " · " + short(nextOut.from) : "Full team in" }
+    ];
+  }
+  var TRIG = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1 L11 6 L2 11 Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+  function renderShell() {
+    $("tiles").innerHTML = tileData().map(function (t, i) {
+      var big = t.id === "word" ? esc(t.big) : t.big;
+      return '<div class="tile rv' + (t.cls ? " " + t.cls : "") + '" id="t-' + t.id + '" style="animation-delay:' + i * 50 + 'ms">' +
+        '<button class="th" aria-expanded="false" aria-controls="p-' + t.id + '" data-t="' + t.id + '"><span class="label">' + t.label + '</span><span class="tb">' + big + '</span><span class="ts">' + t.sub + '</span><span class="tg">' + TRIG + '<em>Open</em></span></button>' +
+        '<div class="tp" id="p-' + t.id + '" hidden><div id="' + t.id + '"></div></div></div>';
+    }).join("");
+    Array.prototype.forEach.call($("tiles").querySelectorAll(".th"), function (b) { b.onclick = function () { toggleTile(b.getAttribute("data-t")); }; });
+  }
+  function toggleTile(id) {
+    var open = document.querySelector(".tile.open"), same = open && open.id === "t-" + id;
+    if (open) { open.classList.remove("open"); open.querySelector(".th").setAttribute("aria-expanded", "false"); open.querySelector(".tp").hidden = true; open.querySelector(".tg em").textContent = "Open"; }
+    if (same) return;
+    var t = $("t-" + id); t.classList.add("open"); t.querySelector(".th").setAttribute("aria-expanded", "true"); t.querySelector(".tp").hidden = false; t.querySelector(".tg em").textContent = "Close";
+    if (id === "calendar") { var w = t.querySelector(".week"), td = t.querySelector(".day.today"); if (w && td && window.innerWidth <= 820) w.scrollLeft = td.offsetLeft - 8; }
+    if (id === "attendance") renderAttendance();
+    setTimeout(function () { t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }, 30);
   }
 
   // ---------- calendar ----------
@@ -127,8 +154,7 @@
         out += '<div class="day' + (iso === TODAY ? " today" : "") + '" style="animation-delay:' + i * 60 + 'ms"><div class="label" style="opacity:.75">' + WD[i].slice(0, 3) + '</div><div class="dn">' + parts(iso).d + '</div>' +
           (evs.length ? evs.map(function (e, k) { return evButton(iso, e, k); }).join("") : '<div class="ev" style="opacity:.6">Open</div>') + '</div>';
       }
-      body.innerHTML = '<div class="week">' + out + '</div><p class="cap">Week of ' + esc(short(ws)) + '. Tap an event to add it to your calendar.</p>';
-      var t = body.querySelector(".day.today"); if (t && window.innerWidth <= 820) body.querySelector(".week").scrollLeft = t.offsetLeft - 8;
+      body.innerHTML = '<div class="week">' + out + '</div><p class="cap">Week of ' + esc(short(ws)) + '. Tap an event to add it to Google Calendar.</p>';
     } else if (view === "month") {
       var mp = parts(monthIso), first = wdOf(monthIso), dim = new Date(Date.UTC(mp.y, mp.m, 0)).getUTCDate();
       var g = WD.map(function (d) { return '<div class="mh">' + d.slice(0, 3) + '</div>'; }).join("");
@@ -207,16 +233,13 @@
       var q = parts(a.date), iso = yr + a.date.slice(4); if (iso < TODAY) iso = (yr + 1) + a.date.slice(4); return { name: a.name, iso: iso, n: diff(TODAY, iso), yrs: parts(iso).y - q.y };
     }).sort(function (a, b) { return a.n - b.n; });
     var rowB = function (x, extra) { return '<div class="row"><span><b>' + esc(x.name) + '</b>' + (extra ? ' <span class="muted">' + extra(x) + '</span>' : '') + '</span><span class="cap">' + (x.n === 0 ? "Today" : esc(short(x.iso)) + " · " + x.n + "d") + '</span></div>'; };
-    $("people").innerHTML =
-      '<div class="card rv" id="bday"><div class="label muted">Staff birthdays</div><h3>Celebrate</h3>' + (bd.length ? bd.map(function (x) { return rowB(x); }).join("") : '<p class="cap">None coming up.</p>') +
+    $("bday").innerHTML = '<div class="label muted">Staff birthdays</div>' + (bd.length ? bd.map(function (x) { return rowB(x); }).join("") : '<p class="cap">None coming up.</p>') +
       '<div class="label muted" style="margin-top:20px">Work anniversaries</div>' + (an.length ? an.map(function (x) { return rowB(x, function (y) { return y.yrs + " yrs"; }); }).join("") : '<p class="cap">No hire dates on file yet. Add them to data/data.js (anniversaries) and they show up here.</p>') +
-      '<button class="btn ghost" id="party" style="margin-top:12px">Celebrate</button></div>' +
-      '<div class="card rv" id="divvy"><div class="label muted">Divvy card reminder</div><div id="dv"></div></div>';
+      '<button class="btn ghost" id="party" style="margin-top:12px">Celebrate</button>';
     $("party").onclick = function (e) { var r = e.target.getBoundingClientRect(); confetti(r.left + r.width / 2, r.top); };
-    var nx = nextDom(D.divvy.days, TODAY), n = diff(TODAY, nx),  span = 14, pct = Math.max(4, Math.min(100, Math.round((1 - n / span) * 100)));
-    $("dv").innerHTML = '<div style="display:flex;gap:20px;align-items:center;margin-top:8px"><div class="ring" style="--p:' + pct + '"><span>' + n + 'd</span></div><div><h3 style="margin:0">' + esc(long(nx)) + '</h3><p class="cap" style="margin:4px 0 0">Reminders go out on the 3rd and 17th.</p></div></div>' +
+    var nx = nextDom(D.divvy.days, TODAY), n = diff(TODAY, nx), pct = Math.max(4, Math.min(100, Math.round((1 - n / 14) * 100)));
+    $("divvy").innerHTML = '<div style="display:flex;gap:20px;align-items:center"><div class="ring" style="--p:' + pct + '"><span>' + n + 'd</span></div><div><h3 style="margin:0">' + esc(long(nx)) + '</h3><p class="cap" style="margin:4px 0 0">Reminders go out on the 3rd and 17th.</p></div></div>' +
       '<p style="margin:16px 0 8px">Snap receipts, add the memo line, and tag the budget code in Divvy.</p><p class="cap">' + esc(D.divvy.reconcile) + '</p><a class="btn" style="display:inline-block;text-decoration:none" href="' + esc(D.divvy.url) + '" target="_blank" rel="noopener">Open Divvy</a>';
-    reveal();
   }
 
   // ---------- word ----------
@@ -234,7 +257,7 @@
     }
     function edit() {
       box.innerHTML = '<textarea id="qt" rows="3" aria-label="Quote" placeholder="Paste the pastor\'s words exactly as spoken">' + esc(q || S.quote) + '</textarea><input id="qb" aria-label="Who said it" placeholder="Pastor name" value="' + esc(by || S.by) + '"><button class="btn" id="qs">Save</button> <button class="btn ghost" id="qc">Cancel</button>';
-      $("qs").onclick = function () { q = $("qt").value.trim(); by = $("qb").value.trim(); store.set("gm-quote", q); store.set("gm-quote-by", by); show(); };
+      $("qs").onclick = function () { q = $("qt").value.trim(); by = $("qb").value.trim(); store.set("gm-quote", q); store.set("gm-quote-by", by); var ts = document.querySelector("#t-word .ts"); if (ts) ts.innerHTML = q ? "&ldquo;" + esc(q.length > 60 ? q.slice(0, 57) + "..." : q) + "&rdquo;" : "Add this week's quote"; show(); };
       $("qc").onclick = show;
     }
     show(); reveal();
@@ -282,8 +305,7 @@
     $("links").innerHTML = D.links.map(function (l) { return '<a href="' + esc(l.u) + '" target="_blank" rel="noopener">' + esc(l.l) + '</a>'; }).join("");
     $("foot").textContent = "Staff only. Data as of " + short(D.asOf) + " from Planning Center, Google Drive and Slack. Times Eastern.";
   }
-  var io = "IntersectionObserver" in window ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }); }, { threshold: .08 }) : null;
-  function reveal() { Array.prototype.forEach.call(document.querySelectorAll(".rv:not(.in)"), function (n) { if (io) io.observe(n); else n.classList.add("in"); }); }
+  function reveal() {}
 
   $("theme").onclick = function () {
     var root = document.documentElement, dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
@@ -291,12 +313,5 @@
   };
   var th = store.get("gm-theme"); if (th) document.documentElement.setAttribute("data-theme", th);
 
-  $("numbers").innerHTML = '<div class="card rv" id="giving"></div><div class="card rv" id="attendance"></div>';
-  renderHero(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderWord(); renderCampaign(); renderPto(); renderFoot(); reveal();
-
-  if ("IntersectionObserver" in window) {
-    var links = document.querySelectorAll("nav a"), secs = Array.prototype.map.call(links, function (a) { return $(a.getAttribute("href").slice(1)); });
-    var so = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) Array.prototype.forEach.call(links, function (a) { a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id); }); }); }, { rootMargin: "-40% 0px -55% 0px" });
-    secs.forEach(function (s) { if (s) so.observe(s); });
-  }
+  renderShell(); renderHero(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderWord(); renderCampaign(); renderPto(); renderFoot();
 })();

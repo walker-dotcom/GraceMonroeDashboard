@@ -10,12 +10,7 @@
     var box = $("g-actions"); box.textContent = ""; (actions || []).forEach(function (a) { box.appendChild(a); });
   }
   function button(label, fn) { var b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = label; b.onclick = fn; return b; }
-  function firstName(name, email) {
-    var n = (name || "").trim().split(/\s+/)[0];
-    if (n) return n;
-    var l = email.split("@")[0].split(/[._-]/)[0].replace(/[^a-z]/gi, "");
-    return l ? l.charAt(0).toUpperCase() + l.slice(1).toLowerCase() : "";
-  }
+  function firstName(name) { return (name || "").trim().split(/\s+/)[0]; }
 
   // Local preview (no Claude runtime): open the dashboard with the bundled data file.
   if (!window.claude || !window.claude.use) { if (window.GM) enter(window.GM, {}); else show("Staff sign-in", "Open this page from claude.ai to sign in.", []); return; }
@@ -31,14 +26,16 @@
     } catch (e) { show("Can't open the dashboard", "Something went wrong loading the data. Reload to try again.", [button("Reload", function () { location.reload(); })]); }
   }
 
+  // Who may enter: members of the organization that owns this page (the gfc.tv workspace). Guests invited from outside are refused.
   (async function () {
     show("Staff sign-in", "Checking your account.", []);
-    var user = await window.claude.use("user"), me = user ? await user.me() : null, email = me && me.email ? me.email.toLowerCase() : "";
-    if (!email) return show("We couldn't confirm your account", "Open this page while signed in to Claude with your " + DOMAIN + " account. If you are, your organization may be hiding email addresses from pages; ask the dashboard owner.", []);
-    if (email.slice(-DOMAIN.length) !== DOMAIN) return show("Staff accounts only", "This dashboard is for " + DOMAIN + " accounts. You are signed in as " + email + ". Switch accounts in Claude and reload.", []);
-    var who = { first: firstName(me.name, email), name: me.name || "", email: email };
-    var again = false; try { again = sessionStorage.getItem("gm-in") === email; } catch (e) {}
+    var user = await window.claude.use("user"), me = user ? await user.me() : null, id = me && me.id;
+    if (!id) return show("We couldn't confirm your account", "Open this page while signed in to Claude with your " + DOMAIN + " account, then reload.", []);
+    var prof = (await user.profiles([id]))[id] || {};
+    if (prof.guest) return show("Staff accounts only", "This dashboard is for Grace Monroe staff (" + DOMAIN + " accounts). You are signed in as an outside guest. Switch to your staff account in Claude and reload.", []);
+    var who = { first: firstName(me.name), name: me.name || "" };
+    var again = false; try { again = sessionStorage.getItem("gm-in") === id; } catch (e) {}
     if (again) return load(who);
-    show("Welcome, " + (who.first || "friend"), "Signed in as " + (me.name ? me.name + " · " : "") + email + ".", [button("Open the dashboard", function () { try { sessionStorage.setItem("gm-in", email); } catch (e) {} load(who); })]);
+    show("Welcome" + (who.first ? ", " + who.first : ""), "Signed in" + (me.name ? " as " + me.name : "") + ". This page is for Grace Monroe staff.", [button("Open the dashboard", function () { try { sessionStorage.setItem("gm-in", id); } catch (e) {} load(who); })]);
   })();
 })();

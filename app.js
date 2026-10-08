@@ -108,7 +108,7 @@
       { id: "calendar", label: "Calendar", big: nk ? rel(nk.d) : "Open", sub: nk ? nk.title : "Week, month, quarter" },
       { id: "giving", label: "Giving", big: G ? "$" + G.mtd.toLocaleString() : "$ — —", sub: G ? G.units + " giving units this month" : "Not connected yet" },
       { id: "attendance", label: "Attendance", big: String(cur.inPerson), sub: short(cur.d) + " · " + (cur.inPerson >= avg ? "+" : "") + (cur.inPerson - avg) + " vs 4-week avg" },
-      { id: "bday", label: "Birthdays &amp; anniversaries", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up" },
+      { id: "bday", label: "Celebrations", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up" },
       { id: "divvy", label: "Divvy reminder", big: diff(TODAY, dv) + "d", sub: long(dv) },
       { id: "word", label: "Sunday word", big: D.sermon.series, sub: q ? "&ldquo;" + esc(q.length > 60 ? q.slice(0, 57) + "..." : q) + "&rdquo;" : "Add this week's quote" },
       { id: "camp", label: "Bold Springs", big: launchN > 0 ? launchN + "d" : launchN === 0 ? "Today" : "Live", sub: launchN > 0 ? "to launch · " + short(D.campaign.steps[2].start) : "Campaign under way", cls: "camp" },
@@ -127,11 +127,22 @@
     var to = +r.style.getPropertyValue("--p"), t0 = performance.now();
     (function f(t) { var k = Math.min(1, (t - t0) / 900); r.style.setProperty("--p", to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); })(t0);
   }
+  var P = ' pathLength="1"';
+  var ICONS = { // 48px grid, 1.5px square-capped line; each carries the right-pointing triangle (.mk)
+    calendar: '<rect x="6" y="9" width="36" height="33"' + P + '/><path d="M6 18H42"' + P + '/><path d="M15 5V12M33 5V12"' + P + '/><path class="mk" d="M20 25L32 31L20 37Z"' + P + '/>',
+    giving: '<circle cx="24" cy="24" r="17"' + P + '/><circle cx="24" cy="24" r="12.5"' + P + '/><path class="mk" d="M20 17L31 24L20 31Z"' + P + '/>',
+    attendance: '<path d="M4 43H44"' + P + '/><rect x="7" y="28" width="8" height="15"' + P + '/><rect x="20" y="18" width="8" height="25"' + P + '/><rect x="33" y="9" width="8" height="34"' + P + '/><path class="mk" d="M5 20L13 14.5L5 9Z"' + P + '/>',
+    bday: '<rect x="7" y="29" width="34" height="13"' + P + '/><path d="M16 29V21M24 29V19M32 29V21"' + P + '/><path class="mk" d="M13 10L19 13.5L13 17Z"' + P + '/><path class="mk" d="M21 6L27 9.5L21 13Z"' + P + '/><path class="mk" d="M29 10L35 13.5L29 17Z"' + P + '/>',
+    divvy: '<rect x="4" y="11" width="40" height="27"' + P + '/><path d="M4 19H44"' + P + '/><path class="mk" d="M10 25L19 29.5L10 34Z"' + P + '/><path d="M26 29.5H38"' + P + '/>',
+    word: '<path d="M6 8H42V32H22L12 41V32H6Z"' + P + '/><path d="M14 16H34M14 23H27"' + P + '/><path class="mk" d="M31 21L37 24L31 27Z"' + P + '/>',
+    camp: '<path d="M4 43H44"' + P + '/><path d="M9 43V22L24 7L39 22V43"' + P + '/><path d="M19 43V32H29V43"' + P + '/><path class="mk" d="M21 20L27 23L21 26Z"' + P + '/>',
+    pto: '<rect x="6" y="16" width="36" height="25"' + P + '/><path d="M17 16V9H31V16"' + P + '/><path d="M6 27H42"' + P + '/><path class="mk" d="M20 30L30 35L20 40Z"' + P + '/>'
+  };
   function renderShell() {
     $("tiles").innerHTML = tileData().map(function (t, i) {
       var big = t.id === "word" ? esc(t.big) : t.big;
       return '<div class="tile rv' + (t.cls ? " " + t.cls : "") + '" id="t-' + t.id + '" style="animation-delay:' + i * 50 + 'ms">' +
-        '<button class="th" aria-expanded="false" aria-controls="p-' + t.id + '" data-t="' + t.id + '"><span class="label">' + t.label + '</span><span class="tb"' + (["attendance", "divvy", "camp", "pto"].indexOf(t.id) > -1 ? ' data-count="1"' : "") + '>' + big + '</span><span class="ts">' + t.sub + '</span><span class="tg">' + TRIG + '<em>Open</em></span><svg class="ttri" viewBox="0 0 130 110" aria-hidden="true"><path d="M6 6 L124 55 L6 104 Z"/><path d="M6 30 L86 55 L6 80 Z"/><path d="M6 44 L48 55 L6 66 Z"/></svg></button>' +
+        '<button class="th" aria-expanded="false" aria-controls="p-' + t.id + '" data-t="' + t.id + '"><span class="label">' + t.label + '</span><span class="tb"' + (["attendance", "divvy", "camp", "pto"].indexOf(t.id) > -1 ? ' data-count="1"' : "") + '>' + big + '</span><span class="ts">' + t.sub + '</span><span class="tg">' + TRIG + '<em>Open</em></span><svg class="ico" viewBox="0 0 48 48" aria-hidden="true">' + ICONS[t.id] + '</svg></button>' +
         '<div class="tp" id="p-' + t.id + '" hidden><div id="' + t.id + '"></div></div></div>';
     }).join("");
     Array.prototype.forEach.call($("tiles").querySelectorAll(".tb[data-count]"), function (el) { countText(el); });

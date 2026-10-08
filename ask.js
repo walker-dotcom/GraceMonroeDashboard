@@ -6,7 +6,6 @@
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
   var DRIVE = "Google Drive", SLACK = "Slack";
-  var CHIPS = ["What is our wedding policy?", "How do I submit an eNews item?", "Social media SOP for staff", "What is the dress code?", "How does content creation work?"];
   var COPY = {
     not_granted: "Claude isn't allowed to answer for this page yet. Allow it when asked, or check with the dashboard owner.",
     sampling_disabled: "Claude isn't available for this account.",
@@ -50,10 +49,8 @@
 
     var turns = [], ctl = null, busy = false, docs = {};
     host.hidden = false;
-    host.innerHTML = '<div class="ask-card"><div class="label" style="opacity:.85">Ask Grace Monroe</div>' +
-      '<h2>Find it in the handbook.</h2><p class="ask-sub">Search the handbook, SOPs and policies. Claude finds the answer and shows where it came from.</p>' +
-      '<form id="ask-form" class="ask-form"><label class="sr" for="ask-in">Ask a question</label><input id="ask-in" type="text" autocomplete="off" placeholder="Ask about a policy or how something works"><button class="btn ask-go" type="submit">Ask</button></form>' +
-      '<div class="ask-chips">' + CHIPS.map(function (c) { return '<button type="button" class="chip" data-q="' + esc(c) + '">' + esc(c) + '</button>'; }).join("") + '</div></div>';
+    host.innerHTML = '<div class="ask-card"><label class="label" for="ask-in">Ask Grace Monroe</label>' +
+      '<form id="ask-form" class="ask-form"><input id="ask-in" type="text" autocomplete="off" placeholder="Ask about a policy or how something works"><button class="btn ask-go" type="submit">Ask</button></form></div>';
 
     var panel = document.createElement("div");
     panel.id = "askpanel"; panel.className = "askpanel"; panel.hidden = true; panel.setAttribute("role", "dialog"); panel.setAttribute("aria-label", "Ask Grace Monroe");
@@ -120,7 +117,6 @@
     function close() { if (ctl) ctl.abort(); panel.hidden = true; document.documentElement.style.overflow = ""; }
     $("ask-form").onsubmit = function (e) { e.preventDefault(); var v = $("ask-in").value; $("ask-in").value = ""; ask(v); };
     $("ask-form2").onsubmit = function (e) { e.preventDefault(); var v = $("ask-in2").value; $("ask-in2").value = ""; ask(v); };
-    Array.prototype.forEach.call(host.querySelectorAll(".chip"), function (c) { c.onclick = function () { ask(c.getAttribute("data-q")); }; });
     $("ask-close").onclick = close; $("ask-stop").onclick = function () { if (ctl) ctl.abort(); };
     $("ask-new").onclick = function () { if (ctl) ctl.abort(); turns = []; log.innerHTML = ""; $("ask-in2").focus(); };
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) close(); });

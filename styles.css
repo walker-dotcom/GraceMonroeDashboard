@@ -360,3 +360,10 @@ header.top { padding-left:env(safe-area-inset-left,0px); padding-right:env(safe-
 .ask-foot .cap { margin:6px 0 0; }
 #ask-status { min-height:18px; margin:0 0 6px; }
 @media (prefers-reduced-motion: reduce) { .msg { animation:none; } }
+
+/* ---- Ask Grace Monroe: bottom of the dashboard, rounded box ---- */
+.ask { padding-top:20px; padding-bottom:12px; }
+.ask-card { display:flex; flex-direction:column; gap:10px; padding:clamp(16px,3vw,24px); }
+.ask-form input { border-radius:999px; padding:10px 20px; }
+.ask-go { border-radius:999px; }
+.ask-foot .ask-form input { border-radius:999px; }

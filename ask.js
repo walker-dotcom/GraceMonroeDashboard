@@ -41,11 +41,12 @@
   var kw = function (q, n) { var seen = {}; return String(q).toLowerCase().split(/[^a-z0-9]+/).filter(function (w) { return w.length > 2 && !/^(the|and|for|how|what|does|our|can|with|are|who|where|when|policy|policies)$/.test(w) && !seen[w] && (seen[w] = 1); }).slice(0, n); };
 
   window.GMAsk = async function (who) {
-    var host = $("ask"); if (!host || !window.claude || !window.claude.use) return;
+    var hideTab = function () { var t = document.querySelector('#tabbar [data-tab="ask"]'); if (t) t.hidden = true; };
+    var host = $("ask"); if (!host || !window.claude || !window.claude.use) return hideTab();
     var sample = await window.claude.use("sample"), mcp = await window.claude.use("mcp");
-    if (!sample || !mcp) return;
+    if (!sample || !mcp) return hideTab();
     var lim = null; try { lim = await sample.limits(); } catch (e) {}
-    if (!lim || !lim.tools) return;
+    if (!lim || !lim.tools) return hideTab();
 
     var turns = [], ctl = null, busy = false, docs = {};
     host.hidden = false;
@@ -101,6 +102,7 @@
     async function ask(q) {
       q = String(q || "").trim(); if (!q || busy) return;
       panel.hidden = false; document.documentElement.style.overflow = "hidden";
+      var emp = log.querySelector(".ask-empty"); if (emp) emp.remove();
       say("u", esc(q)); turns.push({ role: "user", content: q });
       var a = say("a", '<p class="muted">Looking through the handbook and SOPs...</p>'), body = a.querySelector(".mb"), got = false;
       ctl = new AbortController(); setBusy(true); status.textContent = "Searching...";
@@ -117,6 +119,7 @@
     function close() { if (ctl) ctl.abort(); panel.hidden = true; document.documentElement.style.overflow = ""; }
     $("ask-form").onsubmit = function (e) { e.preventDefault(); var v = $("ask-in").value; $("ask-in").value = ""; ask(v); };
     $("ask-form2").onsubmit = function (e) { e.preventDefault(); var v = $("ask-in2").value; $("ask-in2").value = ""; ask(v); };
+    window.GMAskOpen = function () { panel.hidden = false; document.documentElement.style.overflow = "hidden"; if (!log.children.length) log.innerHTML = '<p class="muted ask-empty">Ask about the handbook, SOPs or policies.</p>'; $("ask-in2").focus(); };
     $("ask-close").onclick = close; $("ask-stop").onclick = function () { if (ctl) ctl.abort(); };
     $("ask-new").onclick = function () { if (ctl) ctl.abort(); turns = []; log.innerHTML = ""; $("ask-in2").focus(); };
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) close(); });

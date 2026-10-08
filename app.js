@@ -84,7 +84,7 @@ window.GMStart = function (D, who) {
     $("today").innerHTML = TRI +
       '<div class="label muted rv"><i class="live"></i>' + esc(long(TODAY)) + '</div>' +
       '<h1 class="rv">' + esc(greet) + ', ' + esc(who.first || "Grace Monroe") + '.</h1>' +
-      '<p class="muted rv" style="max-width:640px;margin:0">' + esc(D.mission) + ' Tap a tile to open it.</p>';
+      '<p class="muted rv" style="max-width:640px;margin:0">' + esc(D.mission) + ' Tap a tile to open it.</p><p class="cap live-cap" id="live-cap"></p>';
   }
 
   // ---------- tiles: a summary on the front, the detail opens in place ----------
@@ -150,15 +150,55 @@ window.GMStart = function (D, who) {
     Array.prototype.forEach.call($("tiles").querySelectorAll(".tb[data-count]"), function (el) { if (!$("app").classList.contains("settled")) countText(el); });
     Array.prototype.forEach.call($("tiles").querySelectorAll(".th"), function (b) { b.onclick = function () { toggleTile(b.getAttribute("data-t")); }; });
   }
+  var MOBILE = window.matchMedia ? window.matchMedia("(max-width:639px)") : { matches: false };
+  var TAB_OF = { calendar: "calendar", attendance: "numbers", giving: "numbers", bday: "team", pto: "team" };
+  var GROUPS = { numbers: ["attendance", "giving"], team: ["bday", "pto"] };
+  function syncTabs() {
+    var open = document.querySelector(".tile.open"), cur = open ? (TAB_OF[open.id.slice(2)] || "home") : "home";
+    Array.prototype.forEach.call(document.querySelectorAll("#tabbar .tabb"), function (b) { var on = b.getAttribute("data-tab") === cur; b.classList.toggle("on", on); if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  }
+  function addSegments(t, id) {
+    var g = GROUPS[TAB_OF[id]]; var old = t.querySelector(".seg"); if (old) old.remove(); if (!g || !MOBILE.matches) return;
+    var seg = document.createElement("div"); seg.className = "seg";
+    g.forEach(function (gid) { var b = document.createElement("button"); b.type = "button"; b.textContent = $("t-" + gid).querySelector(".label").textContent; b.className = gid === id ? "on" : ""; b.onclick = function () { if (gid !== id) toggleTile(gid, true); }; seg.appendChild(b); });
+    t.querySelector(".tp").insertBefore(seg, t.querySelector(".tp").firstChild);
+  }
+  function renderTabbar() {
+    var tabs = [["home", "Home", "camp"], ["calendar", "Calendar", "calendar"], ["numbers", "Numbers", "attendance"], ["team", "Team", "bday"], ["ask", "Ask", "word"]];
+    $("tabbar").innerHTML = tabs.map(function (t) { return '<button type="button" class="tabb" data-tab="' + t[0] + '"><svg viewBox="0 0 48 48" aria-hidden="true">' + ICONS[t[2]].replace(/ pathLength="1"/g, "") + '</svg><span>' + t[1] + '</span></button>'; }).join("");
+    Array.prototype.forEach.call($("tabbar").querySelectorAll(".tabb"), function (b) {
+      b.onclick = function () {
+        var k = b.getAttribute("data-tab"), open = document.querySelector(".tile.open");
+        if (k === "ask") { if (window.GMAskOpen) window.GMAskOpen(); return; }
+        if (k === "home") { if (open) toggleTile(open.id.slice(2), true); window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" }); return; }
+        var target = k === "calendar" ? "calendar" : GROUPS[k][0]; if (!open || open.id !== "t-" + target) toggleTile(target, true);
+      };
+    });
+    if (!window.GMAskOpen) { /* ask.js loads after this runs; the tab hides itself when Ask is unavailable */ }
+    syncTabs();
+  }
+  function renderAvatar() {
+    var a = $("avatar"); if (!a) return; a.textContent = ((who.first || "G").charAt(0) || "G").toUpperCase();
+    a.onclick = function () {
+      openModal('<div class="label muted">Signed in</div><h2 id="m-title" style="margin:6px 0 14px">' + esc(who.name || who.first || "Grace Monroe staff") + '</h2>' +
+        '<div class="row"><span>Appearance</span><button class="btn ghost" id="sh-theme" type="button">Light / Dark</button></div>' +
+        '<div class="row"><span>Data</span><button class="btn ghost" id="sh-data" type="button">Sources</button></div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button class="btn" id="sh-refresh" type="button">Refresh now</button><button class="btn ghost" id="sh-out" type="button">Sign out</button></div>');
+      $("sh-theme").onclick = function () { $("theme").click(); }; $("sh-data").onclick = function () { closeModal(); showSources(); };
+      $("sh-refresh").onclick = function () { closeModal(); refresh(); }; $("sh-out").onclick = function () { $("signout").click(); };
+    };
+  }
   function toggleTile(id, quiet) {
     var open = document.querySelector(".tile.open"), same = open && open.id === "t-" + id;
     if (open) { open.classList.remove("open"); open.querySelector(".th").setAttribute("aria-expanded", "false"); open.querySelector(".tp").hidden = true; open.querySelector(".tg em").textContent = "Open"; }
-    if (same) return;
+    if (same) { syncTabs(); return; }
     var t = $("t-" + id); t.classList.add("open"); t.querySelector(".th").setAttribute("aria-expanded", "true"); t.querySelector(".tp").hidden = false; t.querySelector(".tg em").textContent = "Close";
     if (id === "calendar") { var w = t.querySelector(".week"), td = t.querySelector(".day.today"); if (w && td && window.innerWidth <= 820) w.scrollLeft = td.offsetLeft - 8; }
     if (id === "attendance") renderAttendance();
     if (id === "divvy") sweepRing(t);
-    if (!quiet) setTimeout(function () { t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }, 30);
+    addSegments(t, id); if (t.scrollTo) t.scrollTo(0, 0);
+    if (!quiet && !MOBILE.matches) setTimeout(function () { t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }, 30);
+    syncTabs();
   }
 
   // ---------- calendar ----------
@@ -463,7 +503,7 @@ window.GMStart = function (D, who) {
   function setBar() {
     var ok = SRC.filter(function (s) { return SYNC.state[s[0]] === "live"; }).length, bar = $("statusbar"); if (!bar) return;
     var txt = SYNC.busy ? "Updating..." : ok ? "Live · updated " + fTime.format(new Date(SYNC.at)) + (ok < SRC.length ? " · " + (SRC.length - ok) + " saved" : "") : "Saved copy · " + short(D.asOf);
-    $("sb-text").textContent = txt; bar.classList.toggle("is-live", ok > 0 && !SYNC.busy); $("refresh").disabled = SYNC.busy;
+    $("sb-text").textContent = txt; if ($("live-cap")) $("live-cap").textContent = txt; bar.classList.toggle("is-live", ok > 0 && !SYNC.busy); $("refresh").disabled = SYNC.busy;
   }
   function showSources() {
     var rows = SRC.map(function (s) {
@@ -493,7 +533,7 @@ window.GMStart = function (D, who) {
     }, function () {});
   }
 
-  renderShell(); renderHero(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderWord(); renderCampaign(); renderPto(); renderFoot();
+  renderShell(); renderHero(); renderTabbar(); renderAvatar(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderWord(); renderCampaign(); renderPto(); renderFoot();
   setTimeout(function () { $("app").classList.add("settled"); }, 2600);
   startSync();
   if (window.GMAsk) window.GMAsk(who);

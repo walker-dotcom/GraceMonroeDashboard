@@ -3,6 +3,9 @@
 A mobile-first staff dashboard (phones, tablets, desktop). Tiles show a summary; tap one to open its detail in place.
 Built with the "Grace Monroe" design system (slate and blue-gray palette, marigold header, thin-line triangle icons).
 
+## Two builds, one codebase
+`python3 tools/build_artifact.py OUT.html` bundles the responsive dashboard; add `--mobile` for the phone-app build (always the phone layout, a centered phone-width column on wide screens). Each is published as its own artifact with its own saved-data copy (`dashboard/data`), so a data change is written to both.
+
 ## Where it runs
 - **Today: a Claude artifact.** Staff sign-in (Grace Monroe organization members only), a personal greeting, saved data in the artifact database, and live data from each viewer's own Planning Center and Slack connections.
 - **Next: a PWA from this repo.** `manifest.webmanifest`, `sw.js` and `icons/` are ready. Open `index.html` locally to preview (no sign-in or live sync outside Claude).

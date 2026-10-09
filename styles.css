@@ -399,3 +399,9 @@ header.top { padding-left:env(safe-area-inset-left,0px); padding-right:env(safe-
 }
 @keyframes pushin { from { transform:translateX(28px); opacity:0; } to { transform:none; opacity:1; } }
 @media (prefers-reduced-motion: reduce) { .tile.open { animation:none; } }
+
+/* ---- logo lines: never clipped on the right ---- */
+.brand svg, .gate-mark { overflow:visible; }
+.hero .tri { right:12px; left:auto; width:210px; height:182px; overflow:visible; }
+.tri path { stroke-linejoin:round; }
+@media (max-width:639px) { .hero .tri { width:150px; height:130px; right:10px; top:44%; opacity:.12; } }

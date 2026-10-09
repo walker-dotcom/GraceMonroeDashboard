@@ -49,7 +49,7 @@ window.GMStart = function (D, who) {
     var t0 = performance.now();
     (function f(t) { var k = Math.min(1, (t - t0) / ms); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))).toLocaleString(); if (k < 1) requestAnimationFrame(f); })(t0);
   }
-  var TRI = '<svg class="tri" viewBox="0 0 220 190" aria-hidden="true"><path d="M10 10 L210 95 L10 180 Z"/><path d="M10 45 L150 95 L10 145 Z"/><path d="M10 75 L90 95 L10 115 Z"/></svg>';
+  var TRI = '<svg class="tri" viewBox="-4 -4 228 198" aria-hidden="true"><path d="M10 10 L210 95 L10 180 Z"/><path d="M10 45 L150 95 L10 145 Z"/><path d="M10 75 L90 95 L10 115 Z"/></svg>';
   function confetti(x, y) {
     if (reduce) return;
     for (var i = 0; i < 18; i++) {

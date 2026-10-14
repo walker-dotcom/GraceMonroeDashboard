@@ -59,9 +59,9 @@ window.GM = {
   ],
 
   // ---------- Giving (PCO Giving) ----------
-  // Not connected: needs someone with PCO Giving access. Fill this in to light the card up:
-  //   giving: { asOf: "2026-10-08", mtd: 0, lastMonthSameDay: 0, units: 0, lastMonthUnits: 0, series: [daily totals] }
-  giving: null,
+  // Church-wide totals only, from the Slack #sunday-numbers channel. units comes from Planning Center Giving (live, for staff with access).
+  giving: { asOf: "2026-10-08", label: "September MTD", mtd: 106268, prev: 113561, prevLabel: "August", units: null, source: "Sunday Numbers",
+    months: [{ m: "Jul", total: 84739 }, { m: "Aug", total: 113561 }, { m: "Sep", total: 106268 }] },
 
   // ---------- Staff moments ----------
   birthdays: [

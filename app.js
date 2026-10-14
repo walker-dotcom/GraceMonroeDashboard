@@ -107,7 +107,7 @@ window.GMStart = function (D, who) {
     var rel = function (iso) { var n = diff(TODAY, iso); return n === 0 ? "Today" : n < 7 ? WD[wdOf(iso)].slice(0, 3) : short(iso); };
     return [
       { id: "calendar", label: "Calendar", big: nk ? rel(nk.d) : "Open", sub: nk ? nk.title : "Week, month, quarter" },
-      { id: "giving", label: "Giving", big: G ? "$" + G.mtd.toLocaleString() : "$ — —", sub: G ? G.units + " giving units this month" : "Not connected yet" },
+      { id: "giving", label: "Giving", big: G ? dollars(G.mtd) : "$ — —", sub: G ? G.label.replace(" MTD", "") + " total · " + (G.units == null ? "units pending" : Number(G.units).toLocaleString() + " giving units") : "Not connected yet" },
       { id: "attendance", label: "Attendance", big: String(cur.inPerson), sub: short(cur.d) + " · " + (cur.inPerson >= avg ? "+" : "") + (cur.inPerson - avg) + " vs 4-week avg" },
       { id: "bday", label: "Celebrations", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up" },
       { id: "divvy", label: "Divvy reminder", big: diff(TODAY, dv) + "d", sub: long(dv) },
@@ -252,26 +252,29 @@ window.GMStart = function (D, who) {
     reveal();
   }
 
-  // ---------- giving (PCO Giving, not connected) ----------
-  var sampleOn = false;
+  // ---------- giving: church-wide totals only (no donor names, no individual gifts) ----------
+  var sampleOn = false, dollars = function (n) { return "$" + Math.round(n).toLocaleString(); };
   function renderGiving() {
     var G = D.giving, el = $("giving");
     if (G) {
-      var pct = G.lastMonthSameDay ? Math.round((G.mtd / G.lastMonthSameDay - 1) * 100) : 0;
-      el.innerHTML = '<div class="label muted">Giving · month to date</div><div class="big" id="gv" data-to="' + G.mtd + '">$0</div><p class="cap">' + (pct >= 0 ? "+" : "") + pct + '% vs same point last month</p>' +
-        '<div class="label muted" style="margin-top:20px">Giving units</div><div class="big" style="font-size:44px" id="gu">0</div><p class="cap">as of ' + esc(short(G.asOf)) + '</p>';
-      countUp(el.querySelector("#gu"), G.units, 900);
-      var gv = el.querySelector("#gv"); countUp(gv, G.mtd, 1000); setTimeout(function () { gv.textContent = "$" + G.mtd.toLocaleString(); }, 1050);
+      var pct = G.prev ? Math.round((G.mtd / G.prev - 1) * 100) : null, max = Math.max.apply(null, (G.months || []).map(function (x) { return x.total; }).concat([G.mtd]));
+      el.innerHTML = '<div class="label muted">Giving · ' + esc(G.label) + '</div><div class="big" id="gv">' + dollars(G.mtd) + '</div>' +
+        '<p class="cap">Church-wide total' + (pct == null ? "" : " · " + (pct >= 0 ? "+" : "") + pct + "% vs " + esc(G.prevLabel)) + ' · as of ' + esc(short(G.asOf)) + '</p>' +
+        '<div class="label muted" style="margin-top:20px">Giving units</div>' +
+        (G.units == null ? '<div class="big" style="font-size:44px;color:var(--hair)">— —</div><p class="cap">The unit count comes from Planning Center Giving and shows for staff whose login has Giving access.</p>' : '<div class="big" style="font-size:44px" id="gu">' + Number(G.units).toLocaleString() + '</div><p class="cap">Households and individuals who gave in ' + esc(G.label.replace(" MTD", "")) + '</p>') +
+        ((G.months || []).length > 1 ? '<div class="label muted" style="margin-top:20px">Recent months</div><div class="bars" style="height:110px">' + G.months.map(function (x, i) { var last = i === G.months.length - 1; return '<div class="bar-col" style="cursor:default"><span class="cap">' + dollars(x.total / 1000).replace("$", "$") + 'k</span><div class="bar-in' + (last ? "" : "") + '" data-h="' + Math.round(x.total / max * 70) + '" style="opacity:' + (last ? 1 : .55) + '"></div><span class="cap">' + esc(x.m) + '</span></div>'; }).join("") + '</div>' : "") +
+        '<p class="cap" style="margin-top:12px">Source: ' + esc(G.source || "Sunday Numbers") + '. Totals only; individual donors and gifts are never shown here.</p>';
+      requestAnimationFrame(function () { Array.prototype.forEach.call(el.querySelectorAll("[data-h]"), function (b) { b.style.height = b.getAttribute("data-h") + "px"; }); });
+      if (!$("app").classList.contains("settled")) { var gv = el.querySelector("#gv"); countUp(gv, G.mtd, 1000); setTimeout(function () { gv.textContent = dollars(G.mtd); }, 1050); }
       return;
     }
     var s = sampleOn;
-    el.innerHTML = '<div class="label muted">Giving · month to date</div>' +
+    el.innerHTML = '<div class="label muted">Giving</div>' +
       '<div class="locked"><span class="pill">Not connected</span>' +
-      '<div class="' + (s ? "sample" : "") + '"><div class="' + (s ? "big" : "ghostnum") + '" id="gv">' + (s ? "$0" : "$ — —") + '</div><div class="label muted" style="margin-top:12px">Giving units</div><div class="' + (s ? "big" : "ghostnum") + '" style="font-size:40px" id="gu">' + (s ? "0" : "— —") + '</div></div>' +
-      '<p class="cap" style="margin:0">PCO Giving needs a login with Giving access. Once connected, month-to-date giving and giving units appear here.</p>' +
+      '<div class="' + (s ? "sample" : "") + '"><div class="' + (s ? "big" : "ghostnum") + '" id="gv">' + (s ? "$00,000" : "$ — —") + '</div><div class="label muted" style="margin-top:12px">Giving units</div><div class="' + (s ? "big" : "ghostnum") + '" style="font-size:40px" id="gu">' + (s ? "000" : "— —") + '</div></div>' +
+      '<p class="cap" style="margin:0">Totals come from the Sunday Numbers channel in Slack and the unit count from Planning Center Giving.</p>' +
       '<button class="btn ghost" id="samp">' + (s ? "Hide layout preview" : "Preview layout") + '</button></div>';
     $("samp").onclick = function () { sampleOn = !sampleOn; renderGiving(); };
-    if (s) { countUp($("gu"), 0, 1); $("gv").textContent = "$00,000"; $("gu").textContent = "000"; }
   }
 
   // ---------- attendance ----------
@@ -431,7 +434,7 @@ window.GMStart = function (D, who) {
       D.attendance = rows; var i = rows.length - 1; while (i > 0 && rows[i].partial) i--; selA = i;
     });
   }
-  function pullGiving() {
+  function pullGivingPco() { // fallback when #sunday-numbers can't be read: Planning Center totals for the calendar month
     var q = parts(TODAY), first = q.y + "-" + p2(q.m) + "-01", py = q.m === 1 ? q.y - 1 : q.y, pm = q.m === 1 ? 12 : q.m - 1;
     var pDays = new Date(Date.UTC(py, pm, 0)).getUTCDate(), pFirst = py + "-" + p2(pm) + "-01", pSame = py + "-" + p2(pm) + "-" + p2(Math.min(q.d, pDays));
     var don = function (a, b) { return call(PCO, "giving_donations", { received_at_start: a, received_at_end: b, include_totals: true, per_page: 1, output_fields: ["amount_cents"] }); };
@@ -439,8 +442,31 @@ window.GMStart = function (D, who) {
     return Promise.all([don(first, TODAY), don(pFirst, pSame), dnr(first, TODAY), dnr(pFirst, pSame)]).then(function (r) {
       var cents = function (p) { return p.meta && p.meta.received_total_amount_cents; }, n = function (p) { return p.meta && p.meta.total_count; };
       if (cents(r[0]) == null || n(r[2]) == null) throw { code: "tool_error" };
-      D.giving = { asOf: TODAY, mtd: Math.round(cents(r[0]) / 100), lastMonthSameDay: Math.round((cents(r[1]) || 0) / 100), units: n(r[2]), lastMonthUnits: n(r[3]) || 0 };
+      D.giving = { asOf: TODAY, label: MON[q.m - 1] + " MTD", mtd: Math.round(cents(r[0]) / 100), prev: Math.round((cents(r[1]) || 0) / 100), prevLabel: MON[pm - 1], units: n(r[2]), months: [], source: "Planning Center" };
     });
+  }
+  // #sunday-numbers posts "Total giving (September MTD): $106,267.54" each week. Only these church-wide totals are read: no donor, gift or fund detail.
+  function parseSundayGiving(text) {
+    var re = /Total giving \(([A-Za-z]+) MTD\):\s*\$([\d,]+(?:\.\d+)?)[^\[]*\[(\d{4})-(\d{2})-(\d{2})/g, m, posts = [];
+    while ((m = re.exec(text))) { var mi = MON.map(function (x) { return x.toLowerCase(); }).indexOf(m[1].toLowerCase()); if (mi > -1) posts.push({ mi: mi + 1, total: parseFloat(m[2].replace(/,/g, "")), date: m[3] + "-" + m[4] + "-" + m[5] }); }
+    if (!posts.length) throw { code: "tool_error" };
+    posts.forEach(function (p) { var y = +p.date.slice(0, 4), pmon = +p.date.slice(5, 7); p.y = p.mi > pmon ? y - 1 : y; });
+    var byMonth = {}; posts.forEach(function (p) { var k = p.y + "-" + p2(p.mi); if (!byMonth[k] || p.date > byMonth[k].date) byMonth[k] = p; });
+    var months = Object.keys(byMonth).sort().map(function (k) { return byMonth[k]; });
+    var latest = months[months.length - 1], prev = months[months.length - 2];
+    return { label: MON[latest.mi - 1] + " MTD", month: latest.mi, year: latest.y, total: Math.round(latest.total), asOf: latest.date, prev: prev ? Math.round(prev.total) : null, prevLabel: prev ? MON[prev.mi - 1] : "",
+      months: months.slice(-4).map(function (p) { return { m: MON[p.mi - 1].slice(0, 3), total: Math.round(p.total) }; }) };
+  }
+  function pullGiving() {
+    return call(SLK, "slack_read_channel", { channel_id: "C07RTN3ASNL", limit: 40, response_format: "concise" }).then(function (p) {
+      return parseSundayGiving(typeof p === "string" ? p : (p && p.messages) || "");
+    }).then(function (g) {
+      var dim = new Date(Date.UTC(g.year, g.month, 0)).getUTCDate(), start = g.year + "-" + p2(g.month) + "-01", end = g.year + "-" + p2(g.month) + "-" + p2(dim); if (g.asOf < end) end = g.asOf;
+      var old = D.giving && D.giving.label === g.label ? D.giving.units : null;  // keep a unit count already on file for this same period
+      return call(PCO, "giving_donors", { received_at_start: start, received_at_end: end, per_page: 1, output_fields: ["id"] }).then(function (r) { return r.meta && r.meta.total_count != null ? r.meta.total_count : old; }, function () { return old; }).then(function (u) {
+        D.giving = { asOf: g.asOf, label: g.label, mtd: g.total, prev: g.prev, prevLabel: g.prevLabel, units: u == null ? null : u, months: g.months, source: "Sunday Numbers" };
+      });
+    }, function () { return pullGivingPco(); });
   }
   function parseImportant(text) {
     var m = /Upcoming Activities[\s\S]*?\[\d{4}-\d{2}-\d{2}[^\]]*\]/.exec(text); if (!m) throw { code: "tool_error" };

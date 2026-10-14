@@ -18,7 +18,7 @@ A search card at the top of the dashboard (`ask.js`). Staff ask a question about
 |---|---|---|
 | Calendar | curated churchwide moments + weekly rhythm | Planning Center calendar (one-off events) + Slack #important-dates activities |
 | Attendance | last 8 Sundays | Planning Center Check-Ins headcounts |
-| Giving | not connected | Planning Center Giving, only for viewers whose login has Giving access |
+| Giving | church-wide total from the Slack #sunday-numbers channel (no donor or gift detail) | same channel each refresh; the giving-unit count comes from Planning Center Giving, for viewers whose login has access |
 | Birthdays, PTO | Slack list | Slack #important-dates (Out of Office, Birthdays) |
 | Bold Springs, Divvy, Sunday word | updated by the team | not live |
 Anything that can't refresh falls back to the saved copy, and the status bar says what is live. Private rentals (birthday parties, showers, weddings) that appear only in Planning Center are left off.

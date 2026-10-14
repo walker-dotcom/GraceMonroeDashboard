@@ -103,7 +103,7 @@ window.GMStart = function (D, who) {
     var dv = nextDom(D.divvy.days, TODAY), bd = nextBirthday(), out = outOn(TODAY);
     var nextOut = D.pto.filter(function (p) { return p.from > TODAY; })[0];
     var nextNames = nextOut ? D.pto.filter(function (p) { return p.from === nextOut.from; }).map(function (p) { return p.name; }).join(", ") : "";
-    var launchN = diff(TODAY, D.campaign.steps[2].start), q = store.get("gm-quote") || D.sermon.quote, G = D.giving;
+    var launchN = diff(TODAY, D.campaign.steps[2].start), G = D.giving;
     var rel = function (iso) { var n = diff(TODAY, iso); return n === 0 ? "Today" : n < 7 ? WD[wdOf(iso)].slice(0, 3) : short(iso); };
     return [
       { id: "calendar", label: "Calendar", big: nk ? rel(nk.d) : "Open", sub: nk ? nk.title : "Week, month, quarter" },
@@ -111,7 +111,7 @@ window.GMStart = function (D, who) {
       { id: "attendance", label: "Attendance", big: String(cur.inPerson), sub: short(cur.d) + " · " + (cur.inPerson >= avg ? "+" : "") + (cur.inPerson - avg) + " vs 4-week avg" },
       { id: "bday", label: "Celebrations", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up" },
       { id: "divvy", label: "Divvy reminder", big: diff(TODAY, dv) + "d", sub: long(dv) },
-      { id: "word", label: "Sunday word", big: D.sermon.series, sub: q ? "&ldquo;" + esc(q.length > 60 ? q.slice(0, 57) + "..." : q) + "&rdquo;" : "Add this week's quote" },
+      { id: "word", label: "Series verse", big: (D.series && D.series.title) || "This series", sub: (D.series && D.series.reference) || (canEditSeries ? "Add the series verse" : "Coming soon") },
       { id: "camp", label: "Bold Springs", big: launchN > 0 ? launchN + "d" : launchN === 0 ? "Today" : "Live", sub: launchN > 0 ? "to launch · " + short(D.campaign.steps[2].start) : "Campaign under way" },
       { id: "pto", label: "PTO", big: out.length + " out", sub: out.length ? out.map(function (o) { return o.name; }).join(", ") : nextOut ? "Next: " + nextNames + " · " + short(nextOut.from) : "Full team in" }
     ];
@@ -322,22 +322,34 @@ window.GMStart = function (D, who) {
       '<p style="margin:16px 0 8px">Snap receipts, add the memo line, and tag the budget code in Divvy.</p><p class="cap">' + esc(D.divvy.reconcile) + '</p><a class="btn" style="display:inline-block;text-decoration:none" href="' + esc(D.divvy.url) + '" target="_blank" rel="noopener">Open Divvy</a>';
   }
 
-  // ---------- word ----------
+  // ---------- series verse: the series name and a Scripture passage a person chose (shown as written; nothing is generated) ----------
+  var canEditSeries = false;
+  function paintWordTile() { var S = D.series || {}, t = document.querySelector("#t-word"); if (!t) return; t.querySelector(".tb").textContent = S.title || "This series"; t.querySelector(".ts").textContent = S.reference || (canEditSeries ? "Add the series verse" : "Coming soon"); }
   function renderWord() {
-    var S = D.sermon, q = store.get("gm-quote"), by = store.get("gm-quote-by"), has = q || S.quote;
-    $("word").innerHTML = '<div class="head rv"><h2>The Sunday word</h2><span class="label muted">Series · ' + esc(S.series) + '</span></div>' +
-      '<div class="quote rv">' + TRI + '<div id="qv"></div></div>';
-    var box = $("qv");
+    var S = D.series || {}, box = $("word");
+    box.innerHTML = '<div class="head rv"><h2>' + esc(S.title || "This series") + '</h2><span class="label muted">Series verse</span></div><div class="quote rv">' + TRI + '<div id="qv"></div></div>';
+    var qv = $("qv");
     function show() {
-      var t = q || S.quote, b = by || S.by;
-      box.innerHTML = t ? '<blockquote>&ldquo;' + esc(t) + '&rdquo;</blockquote><div class="label">' + esc(b || "Pastor") + '</div>' :
-        '<blockquote class="muted">A line from Sunday goes here.</blockquote><p class="cap">' + esc(S.note) + '</p>';
-      box.innerHTML += '<p style="margin-top:20px"><button class="btn ghost" id="qe">' + (t ? "Change quote" : "Add quote") + '</button> <a class="label" href="' + esc(S.url) + '" target="_blank" rel="noopener" style="margin-left:12px">Listen to the sermon</a></p>';
-      $("qe").onclick = edit;
+      S = D.series || {};
+      var link = S.reference ? "https://www.biblegateway.com/passage/?search=" + encodeURIComponent(S.reference) + (S.translation ? "&version=" + encodeURIComponent(S.translation) : "") : "";
+      qv.innerHTML = S.reference ?
+        (S.text ? '<blockquote>&ldquo;' + esc(S.text) + '&rdquo;</blockquote>' : "") + '<div class="label">' + esc(S.reference) + (S.translation ? " · " + esc(S.translation) : "") + '</div>' +
+          '<p style="margin-top:18px"><a class="btn ghost" style="text-decoration:none;display:inline-block" href="' + esc(link) + '" target="_blank" rel="noopener">Read the passage</a></p>' :
+        '<blockquote class="muted">The series verse will show here.</blockquote>';
+      if (canEditSeries) qv.innerHTML += '<p style="margin-top:' + (S.reference ? "6px" : "16px") + '"><button class="btn ghost" id="qe" type="button">' + (S.reference ? "Change series verse" : "Add series verse") + '</button></p>';
+      if ($("qe")) $("qe").onclick = edit;
     }
     function edit() {
-      box.innerHTML = '<textarea id="qt" rows="3" aria-label="Quote" placeholder="Paste the pastor\'s words exactly as spoken">' + esc(q || S.quote) + '</textarea><input id="qb" aria-label="Who said it" placeholder="Pastor name" value="' + esc(by || S.by) + '"><button class="btn" id="qs">Save</button> <button class="btn ghost" id="qc">Cancel</button>';
-      $("qs").onclick = function () { q = $("qt").value.trim(); by = $("qb").value.trim(); store.set("gm-quote", q); store.set("gm-quote-by", by); var ts = document.querySelector("#t-word .ts"); if (ts) ts.innerHTML = q ? "&ldquo;" + esc(q.length > 60 ? q.slice(0, 57) + "..." : q) + "&rdquo;" : "Add this week's quote"; show(); };
+      var f = function (id, label, val, ph, area) { return '<label class="label muted" for="' + id + '" style="display:block;margin-top:12px">' + label + '</label>' + (area ? '<textarea id="' + id + '" rows="3" placeholder="' + ph + '"' : '<input id="' + id + '" type="text" autocomplete="off" placeholder="' + ph + '"') + ' style="width:100%;margin-top:6px;padding:10px 14px;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--hair);border-radius:0;min-height:48px"' + (area ? '>' + esc(val) + '</textarea>' : ' value="' + esc(val) + '">'); };
+      S = D.series || {};
+      qv.innerHTML = f("sv-t", "Series name", S.title || "", "As it appears on the Sunday series") + f("sv-r", "Scripture reference", S.reference || "", "For example: Nehemiah 2:17-18") + f("sv-x", "Verse text, exactly as printed", S.text || "", "Paste the verse from your Bible translation", true) + f("sv-v", "Translation", S.translation || "", "For example: NIV") +
+        '<p class="cap" id="sv-msg" style="margin:10px 0 0"></p><div style="display:flex;gap:10px;margin-top:14px"><button class="btn" id="qs" type="button">Save</button><button class="btn ghost" id="qc" type="button">Cancel</button></div>';
+      $("qs").onclick = async function () {
+        var v = { title: $("sv-t").value.trim().slice(0, 120), reference: $("sv-r").value.trim().slice(0, 120), text: $("sv-x").value.trim().slice(0, 900), translation: $("sv-v").value.trim().slice(0, 20) };
+        $("qs").disabled = true; $("sv-msg").textContent = "Saving...";
+        try { var db = await window.claude.use("db"); if (!db) throw 0; await db.doc("dashboard/series").set(v); D.series = v; paintWordTile(); show(); }
+        catch (e) { $("qs").disabled = false; $("sv-msg").textContent = "Couldn't save. You need edit access to this dashboard."; }
+      };
       $("qc").onclick = show;
     }
     show(); reveal();
@@ -575,4 +587,5 @@ window.GMStart = function (D, who) {
   setTimeout(function () { $("app").classList.add("settled"); }, 2600);
   startSync();
   if (window.GMAsk) window.GMAsk(who);
+  if (window.claude && window.claude.use) window.claude.use("user").then(function (u) { return u && u.canEdit ? u.canEdit() : false; }).then(function (c) { if (c) { canEditSeries = true; renderWord(); paintWordTile(); } }, function () {});
 };

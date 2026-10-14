@@ -74,14 +74,9 @@ window.GM = {
   // ---------- Divvy ----------
   divvy: { days: [3, 17], reconcile: "Reconcile receipts by the 5th and 20th (Slack, Aug 20).", url: "https://app.getdivvy.com" },
 
-  // ---------- Pastoral quote ----------
-  sermon: {
-    series: "Rebuild",
-    note: "Add a line from Sunday's message (from the sermon notebook). Staff edits on this page stay on this device.",
-    quote: "",
-    by: "",
-    url: "https://graceformonroe.churchcenter.com/channels/19510"
-  },
+  // ---------- Series verse ----------
+  // Set from the dashboard by someone with edit access (saved as dashboard/series). Empty until a person chooses the series name and verse.
+  series: {},
 
   // ---------- Bold Springs Campaign ----------
   campaign: {

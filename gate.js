@@ -22,7 +22,9 @@
       if (!db) return show("Can't open the dashboard", "Sign in to Claude with your gfc.tv account and reload this page.", []);
       var snap = await db.doc("dashboard/data").get();
       if (!snap.exists) return show("Dashboard is being set up", "The data isn't loaded yet. Ask the dashboard owner to refresh it.", []);
-      enter(snap.data(), who);
+      var data = JSON.parse(JSON.stringify(snap.data())); data.series = {};
+      try { var sv = await db.doc("dashboard/series").get(); if (sv.exists) data.series = sv.data(); } catch (e) {}
+      enter(data, who);
     } catch (e) { show("Can't open the dashboard", "Something went wrong loading the data. Reload to try again.", [button("Reload", function () { location.reload(); })]); }
   }
 

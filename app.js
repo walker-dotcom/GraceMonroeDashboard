@@ -154,9 +154,14 @@ window.GMStart = function (D, who) {
   var TAB_OF = { calendar: "calendar", attendance: "numbers", giving: "numbers", bday: "team", pto: "team" };
   var GROUPS = { numbers: ["attendance", "giving"], team: ["bday", "pto"] };
   function syncTabs() {
-    var open = document.querySelector(".tile.open"), cur = open ? (TAB_OF[open.id.slice(2)] || "home") : "home";
-    Array.prototype.forEach.call(document.querySelectorAll("#tabbar .tabb"), function (b) { var on = b.getAttribute("data-tab") === cur; b.classList.toggle("on", on); if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    var open = document.querySelector(".tile.open:not(.closing)"), cur = open ? (TAB_OF[open.id.slice(2)] || "home") : "home", vis = [], idx = 0;
+    Array.prototype.forEach.call(document.querySelectorAll("#tabbar .tabb"), function (b) {
+      if (b.hidden) return; if (b.getAttribute("data-tab") === cur) idx = vis.length; vis.push(b);
+      var on = b.getAttribute("data-tab") === cur; b.classList.toggle("on", on); if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+    var ind = document.querySelector("#tabbar .tabind"); if (ind) { ind.style.setProperty("--n", vis.length || 1); ind.style.setProperty("--i", idx); }
   }
+  document.addEventListener("gm-tabs", function () { syncTabs(); });
   function addSegments(t, id) {
     var g = GROUPS[TAB_OF[id]]; var old = t.querySelector(".seg"); if (old) old.remove(); if (!g || !MOBILE.matches) return;
     var seg = document.createElement("div"); seg.className = "seg";
@@ -165,7 +170,7 @@ window.GMStart = function (D, who) {
   }
   function renderTabbar() {
     var tabs = [["home", "Home", "camp"], ["calendar", "Calendar", "calendar"], ["numbers", "Numbers", "attendance"], ["team", "Team", "bday"], ["ask", "Ask", "word"]];
-    $("tabbar").innerHTML = tabs.map(function (t) { return '<button type="button" class="tabb" data-tab="' + t[0] + '"><svg viewBox="0 0 48 48" aria-hidden="true">' + ICONS[t[2]].replace(/ pathLength="1"/g, "") + '</svg><span>' + t[1] + '</span></button>'; }).join("");
+    $("tabbar").innerHTML = tabs.map(function (t) { return '<button type="button" class="tabb" data-tab="' + t[0] + '"><svg viewBox="0 0 48 48" aria-hidden="true">' + ICONS[t[2]].replace(/ pathLength="1"/g, "") + '</svg><span>' + t[1] + '</span></button>'; }).join("") + '<i class="tabind" aria-hidden="true"></i>';
     Array.prototype.forEach.call($("tabbar").querySelectorAll(".tabb"), function (b) {
       b.onclick = function () {
         var k = b.getAttribute("data-tab"), open = document.querySelector(".tile.open");
@@ -188,13 +193,19 @@ window.GMStart = function (D, who) {
       $("sh-refresh").onclick = function () { closeModal(); refresh(); }; $("sh-out").onclick = function () { $("signout").click(); };
     };
   }
+  function finishClose(t) { t.classList.remove("open", "closing"); t.querySelector(".th").setAttribute("aria-expanded", "false"); t.querySelector(".tp").hidden = true; t.querySelector(".tg em").textContent = "Open"; }
   function toggleTile(id, quiet) {
     var open = document.querySelector(".tile.open"), same = open && open.id === "t-" + id;
-    if (open) { open.classList.remove("open"); open.querySelector(".th").setAttribute("aria-expanded", "false"); open.querySelector(".tp").hidden = true; open.querySelector(".tg em").textContent = "Open"; }
-    if (same) { syncTabs(); return; }
+    if (open && open.classList.contains("closing")) { if (same) return; finishClose(open); open = null; }
+    if (same) { // closing the open tile: ease it out first
+      if (reduce) finishClose(open); else { open.classList.add("closing"); setTimeout(function () { finishClose(open); }, 250); }
+      syncTabs(); return;
+    }
+    if (open) finishClose(open);
     var t = $("t-" + id); t.classList.add("open"); t.querySelector(".th").setAttribute("aria-expanded", "true"); t.querySelector(".tp").hidden = false; t.querySelector(".tg em").textContent = "Close";
     if (id === "calendar") { var w = t.querySelector(".week"), td = t.querySelector(".day.today"); if (w && td && window.innerWidth <= 820) w.scrollLeft = td.offsetLeft - 8; }
     if (id === "attendance") renderAttendance();
+    if (id === "giving") renderGiving(true);
     if (id === "divvy") sweepRing(t);
     addSegments(t, id); if (t.scrollTo) t.scrollTo(0, 0);
     if (!quiet && !MOBILE.matches) setTimeout(function () { t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }, 30);
@@ -254,7 +265,7 @@ window.GMStart = function (D, who) {
 
   // ---------- giving: church-wide totals only (no donor names, no individual gifts) ----------
   var sampleOn = false, dollars = function (n) { return "$" + Math.round(n).toLocaleString(); };
-  function renderGiving() {
+  function renderGiving(anim) {
     var G = D.giving, el = $("giving");
     if (G) {
       var pct = G.prev ? Math.round((G.mtd / G.prev - 1) * 100) : null, max = Math.max.apply(null, (G.months || []).map(function (x) { return x.total; }).concat([G.mtd]));
@@ -265,7 +276,7 @@ window.GMStart = function (D, who) {
         ((G.months || []).length > 1 ? '<div class="label muted" style="margin-top:20px">Recent months</div><div class="bars" style="height:110px">' + G.months.map(function (x, i) { var last = i === G.months.length - 1; return '<div class="bar-col" style="cursor:default"><span class="cap">' + dollars(x.total / 1000).replace("$", "$") + 'k</span><div class="bar-in' + (last ? "" : "") + '" data-h="' + Math.round(x.total / max * 70) + '" style="opacity:' + (last ? 1 : .55) + '"></div><span class="cap">' + esc(x.m) + '</span></div>'; }).join("") + '</div>' : "") +
         '<p class="cap" style="margin-top:12px">Source: ' + esc(G.source || "Sunday Numbers") + '. Totals only; individual donors and gifts are never shown here.</p>';
       requestAnimationFrame(function () { Array.prototype.forEach.call(el.querySelectorAll("[data-h]"), function (b) { b.style.height = b.getAttribute("data-h") + "px"; }); });
-      if (!$("app").classList.contains("settled")) { var gv = el.querySelector("#gv"); countUp(gv, G.mtd, 1000); setTimeout(function () { gv.textContent = dollars(G.mtd); }, 1050); }
+      if (anim || !$("app").classList.contains("settled")) { var gv = el.querySelector("#gv"), t0 = performance.now(); if (!reduce) (function f(t) { var k = Math.min(1, (t - t0) / 1000); gv.textContent = dollars(G.mtd * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); })(t0); }
       return;
     }
     var s = sampleOn;
@@ -378,6 +389,7 @@ window.GMStart = function (D, who) {
   if ($("signout")) $("signout").onclick = function () { try { sessionStorage.removeItem("gm-in"); } catch (e) {} location.reload(); };
   $("theme").onclick = function () {
     var root = document.documentElement, dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.classList.add("theme-anim"); setTimeout(function () { root.classList.remove("theme-anim"); }, 450);
     root.setAttribute("data-theme", dark ? "light" : "dark"); store.set("gm-theme", dark ? "light" : "dark");
   };
   var th = store.get("gm-theme"); if (th) document.documentElement.setAttribute("data-theme", th);

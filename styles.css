@@ -410,3 +410,55 @@ header.top { padding-left:env(safe-area-inset-left,0px); padding-right:env(safe-
 .tile { display:flex; flex-direction:column; }
 .tile .th { flex:1 1 auto; }
 .tile.open .th { flex:none; }
+
+/* ---- smooth motion layer (all of it off for reduced-motion) ---- */
+:root { --ease:cubic-bezier(.22,.8,.24,1); }
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes sheetUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
+@keyframes panelOut { to { opacity:0; transform:translateY(-8px); } }
+@keyframes pushout { to { opacity:0; transform:translateX(30px); } }
+@keyframes tabpop { 0% { transform:scale(.82); } 60% { transform:scale(1.1); } 100% { transform:scale(1); } }
+@keyframes dotpulse { 0%,80%,100% { opacity:.25; transform:scale(.75); } 40% { opacity:1; transform:scale(1); } }
+.dots { display:inline-flex; gap:4px; margin-left:4px; vertical-align:middle; }
+.dots i { width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.25; }
+.tabbar { position:fixed; }
+.tabind { display:none; }
+@media (prefers-reduced-motion: no-preference) {
+  .tile { transition:transform .3s var(--ease), border-color .25s ease; }
+  .tile .th { transition:background-color .25s ease, filter .25s ease, transform .2s var(--ease); }
+  .tile .tp { animation:fadeUp .4s var(--ease) both; }
+  .tile .tp > div > * { animation:fadeUp .45s var(--ease) both; }
+  .tile.closing .tp { animation:panelOut .2s ease forwards; }
+  .tile .ico { transition:transform .4s var(--ease); }
+  .btn, .chip, .seg button, .tabs button, .step, .qrow, .mc, .bar-col { transition:background-color .22s ease, color .22s ease, border-color .22s ease, transform .18s var(--ease), opacity .22s ease; }
+  .btn:active, .tabs button:active, .seg button:active, .step:active, .qrow:active { transform:scale(.97); }
+  .tile:not(.open):has(.th:active) { transform:scale(.97); }
+  #calbody > * { animation:fadeUp .4s var(--ease) both; }
+  .modal:not([hidden]) { animation:fadeIn .22s ease both; }
+  .sheet { animation:sheetUp .34s var(--ease) both; }
+  .askpanel:not([hidden]) { animation:sheetUp .36s var(--ease) both; }
+  .msg { animation:fadeUp .45s var(--ease) both; }
+  .dots i { animation:dotpulse 1.3s ease-in-out infinite; } .dots i:nth-child(2) { animation-delay:.18s; } .dots i:nth-child(3) { animation-delay:.36s; }
+  .ask-form input { transition:border-color .2s ease, box-shadow .25s ease; } .ask-form input:focus { box-shadow:0 0 0 3px color-mix(in srgb, var(--marigold) 55%, transparent); outline:none; }
+  .bar-in, .bar-on { transition:height .9s var(--ease), background-color .25s ease, opacity .25s ease; }
+  .theme-anim, .theme-anim * { transition:background-color .35s ease, color .35s ease, border-color .35s ease, fill .35s ease, stroke .35s ease !important; }
+  .tabb.on svg { animation:tabpop .4s var(--ease); }
+  .tabb { transition:color .25s ease; }
+  .statusbar { transition:background-color .35s ease; }
+}
+@media (hover:hover) and (prefers-reduced-motion: no-preference) {
+  .tile:not(.open):hover { transform:translateY(-3px); }
+  .tile:not(.open):hover .ico { transform:scale(1.06); }
+}
+@media (max-width:639px) {
+  .tabind { display:block; position:absolute; top:0; left:0; width:calc(100% / var(--n, 5)); height:3px; transform:translateX(calc(var(--i, 0) * 100%)); pointer-events:none; }
+  .tabind::after { content:""; position:absolute; left:22%; right:22%; top:0; bottom:0; background:var(--marigold); }
+  .tabb.on::before { display:none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .tabind { transition:transform .38s var(--ease), width .3s var(--ease); }
+    .tile.open { animation:pushin .34s var(--ease) both; }
+    .tile.open.closing { animation:pushout .24s ease forwards; }
+    .tile.closing .tp { animation:none; }
+  }
+}

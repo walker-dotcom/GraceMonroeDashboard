@@ -41,7 +41,7 @@
   var kw = function (q, n) { var seen = {}; return String(q).toLowerCase().split(/[^a-z0-9]+/).filter(function (w) { return w.length > 2 && !/^(the|and|for|how|what|does|our|can|with|are|who|where|when|policy|policies)$/.test(w) && !seen[w] && (seen[w] = 1); }).slice(0, n); };
 
   window.GMAsk = async function (who) {
-    var hideTab = function () { var t = document.querySelector('#tabbar [data-tab="ask"]'); if (t) t.hidden = true; };
+    var hideTab = function () { var t = document.querySelector('#tabbar [data-tab="ask"]'); if (t) { t.hidden = true; document.dispatchEvent(new Event("gm-tabs")); } };
     var host = $("ask"); if (!host || !window.claude || !window.claude.use) return hideTab();
     var sample = await window.claude.use("sample"), mcp = await window.claude.use("mcp");
     if (!sample || !mcp) return hideTab();
@@ -104,7 +104,7 @@
       panel.hidden = false; document.documentElement.style.overflow = "hidden";
       var emp = log.querySelector(".ask-empty"); if (emp) emp.remove();
       say("u", esc(q)); turns.push({ role: "user", content: q });
-      var a = say("a", '<p class="muted">Looking through the handbook and SOPs...</p>'), body = a.querySelector(".mb"), got = false;
+      var a = say("a", '<p class="muted typing">Looking through the handbook and SOPs <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></p>'), body = a.querySelector(".mb"), got = false;
       ctl = new AbortController(); setBusy(true); status.textContent = "Searching...";
       var input = [{ role: "user", content: RULES.replace("{DATE}", new Date().toISOString().slice(0, 10)) }].concat(turns.slice(-8));
       try {

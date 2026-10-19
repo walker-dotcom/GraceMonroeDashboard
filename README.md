@@ -20,7 +20,7 @@ A search card at the top of the dashboard (`ask.js`). Staff ask a question about
 | Attendance | last 8 Sundays | Planning Center Check-Ins headcounts |
 | Giving | church-wide total from the Slack #sunday-numbers channel (no donor or gift detail) | same channel each refresh; the giving-unit count comes from Planning Center Giving, for viewers whose login has access |
 | Birthdays, PTO | Slack list | Slack #important-dates (Out of Office, Birthdays) |
-| Series verse | the series name and Scripture passage a person chose (saved as `dashboard/series`; editors set it from the card) | not live. Nothing is generated. |
+| Sunday message (series, title, key text) | the coming Sunday from the Communications Schedule, saved in the data | the Sunday-morning plan in Planning Center (Message item "Series \| Title \| Neh 3"). Editors can add the verse text from the card (`dashboard/series`). Nothing is generated. |
 | Bold Springs, Divvy | updated by the team | not live |
 Anything that can't refresh falls back to the saved copy, and the status bar says what is live. Private rentals (birthday parties, showers, weddings) that appear only in Planning Center are left off.
 

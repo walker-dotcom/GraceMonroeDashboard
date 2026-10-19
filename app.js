@@ -111,7 +111,7 @@ window.GMStart = function (D, who) {
       { id: "attendance", label: "Attendance", big: String(cur.inPerson), sub: short(cur.d) + " · " + (cur.inPerson >= avg ? "+" : "") + (cur.inPerson - avg) + " vs 4-week avg" },
       { id: "bday", label: "Celebrations", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up" },
       { id: "divvy", label: "Divvy reminder", big: diff(TODAY, dv) + "d", sub: long(dv) },
-      { id: "word", label: "Series verse", big: (D.series && D.series.title) || "This series", sub: (D.series && D.series.reference) || (canEditSeries ? "Add the series verse" : "Coming soon") },
+      { id: "word", label: "Sunday message", big: sundayInfo().series || "This series", sub: sundaySub() },
       { id: "camp", label: "Bold Springs", big: launchN > 0 ? launchN + "d" : launchN === 0 ? "Today" : "Live", sub: launchN > 0 ? "to launch · " + short(D.campaign.steps[2].start) : "Campaign under way" },
       { id: "pto", label: "PTO", big: out.length + " out", sub: out.length ? out.map(function (o) { return o.name; }).join(", ") : nextOut ? "Next: " + nextNames + " · " + short(nextOut.from) : "Full team in" }
     ];
@@ -323,29 +323,42 @@ window.GMStart = function (D, who) {
   }
 
   // ---------- series verse: the series name and a Scripture passage a person chose (shown as written; nothing is generated) ----------
+  var BOOKS = { gen: "Genesis", ex: "Exodus", exod: "Exodus", lev: "Leviticus", num: "Numbers", deut: "Deuteronomy", josh: "Joshua", judg: "Judges", ruth: "Ruth", "1 sam": "1 Samuel", "2 sam": "2 Samuel", "1 kings": "1 Kings", "2 kings": "2 Kings", "1 chron": "1 Chronicles", "2 chron": "2 Chronicles", ezra: "Ezra", neh: "Nehemiah", esth: "Esther", job: "Job", ps: "Psalm", psa: "Psalm", psalm: "Psalm", psalms: "Psalm", prov: "Proverbs", eccl: "Ecclesiastes", song: "Song of Solomon", isa: "Isaiah", jer: "Jeremiah", lam: "Lamentations", ezek: "Ezekiel", dan: "Daniel", hos: "Hosea", joel: "Joel", amos: "Amos", obad: "Obadiah", jonah: "Jonah", mic: "Micah", nah: "Nahum", hab: "Habakkuk", zeph: "Zephaniah", hag: "Haggai", zech: "Zechariah", mal: "Malachi", matt: "Matthew", mk: "Mark", mark: "Mark", luke: "Luke", john: "John", acts: "Acts", rom: "Romans", "1 cor": "1 Corinthians", "2 cor": "2 Corinthians", gal: "Galatians", eph: "Ephesians", phil: "Philippians", col: "Colossians", "1 thess": "1 Thessalonians", "2 thess": "2 Thessalonians", "1 tim": "1 Timothy", "2 tim": "2 Timothy", titus: "Titus", philem: "Philemon", heb: "Hebrews", jas: "James", james: "James", "1 pet": "1 Peter", "2 pet": "2 Peter", "1 john": "1 John", "2 john": "2 John", "3 john": "3 John", jude: "Jude", rev: "Revelation" };
+  function fullRef(r) { // "Neh 3" -> "Nehemiah 3"
+    var m = /^\s*((?:[123]\s)?[A-Za-z]+)\.?\s*(.*)$/.exec(String(r || "")); if (!m) return String(r || "").trim();
+    var full = BOOKS[m[1].toLowerCase().replace(/\s+/g, " ")]; return full ? (full + " " + m[2]).trim() : String(r).trim();
+  }
   var canEditSeries = false;
-  function paintWordTile() { var S = D.series || {}, t = document.querySelector("#t-word"); if (!t) return; t.querySelector(".tb").textContent = S.title || "This series"; t.querySelector(".ts").textContent = S.reference || (canEditSeries ? "Add the series verse" : "Coming soon"); }
+  // The coming Sunday's series, message title and key text. Planning Center's Sunday plan supplies them (read live); a saved copy covers viewers who aren't connected.
+  // A verse text pasted in by an editor is shown only when it belongs to that same passage.
+  function sundayInfo() {
+    var U = D.sunday || {}, M = D.series || {}, ref = U.reference || M.reference || "";
+    var same = M.reference && ref && fullRef(M.reference).toLowerCase() === fullRef(ref).toLowerCase();
+    return { date: U.date || "", series: U.series || M.title || "", title: U.title || "", reference: ref ? fullRef(ref) : "", text: same ? M.text || "" : "", translation: same ? M.translation || "" : "" };
+  }
+  function sundaySub() { var S = sundayInfo(); var bits = [S.title, S.reference].filter(Boolean); return bits.length ? bits.join(" · ") : (canEditSeries ? "Add the key text" : "Coming soon"); }
+  function paintWordTile() { var S = sundayInfo(), t = document.querySelector("#t-word"); if (!t) return; t.querySelector(".tb").textContent = S.series || "This series"; t.querySelector(".ts").textContent = sundaySub(); }
   function renderWord() {
-    var S = D.series || {}, box = $("word");
-    box.innerHTML = '<div class="head rv"><h2>' + esc(S.title || "This series") + '</h2><span class="label muted">Series verse</span></div><div class="quote rv">' + TRI + '<div id="qv"></div></div>';
+    var box = $("word"), S = sundayInfo();
+    box.innerHTML = '<div class="head rv"><h2>' + esc(S.series || "This series") + '</h2><span class="label muted">' + (S.date ? "Sunday, " + esc(short(S.date)) : "Sunday message") + '</span></div><div class="quote rv">' + TRI + '<div id="qv"></div></div>';
     var qv = $("qv");
     function show() {
-      S = D.series || {};
+      S = sundayInfo();
       var link = S.reference ? "https://www.biblegateway.com/passage/?search=" + encodeURIComponent(S.reference) + (S.translation ? "&version=" + encodeURIComponent(S.translation) : "") : "";
-      qv.innerHTML = S.reference ?
-        (S.text ? '<blockquote>&ldquo;' + esc(S.text) + '&rdquo;</blockquote>' : "") + '<div class="label">' + esc(S.reference) + (S.translation ? " · " + esc(S.translation) : "") + '</div>' +
-          '<p style="margin-top:18px"><a class="btn ghost" style="text-decoration:none;display:inline-block" href="' + esc(link) + '" target="_blank" rel="noopener">Read the passage</a></p>' :
-        '<blockquote class="muted">The series verse will show here.</blockquote>';
-      if (canEditSeries) qv.innerHTML += '<p style="margin-top:' + (S.reference ? "6px" : "16px") + '"><button class="btn ghost" id="qe" type="button">' + (S.reference ? "Change series verse" : "Add series verse") + '</button></p>';
+      qv.innerHTML = (S.title ? '<div class="label muted">Message</div><div style="font:400 clamp(24px,4vw,34px)/1.15 var(--display);margin:6px 0 18px">' + esc(S.title) + '</div>' : "") +
+        (S.reference ? '<div class="label muted">Key text</div>' + (S.text ? '<blockquote style="margin:8px 0 10px">&ldquo;' + esc(S.text) + '&rdquo;</blockquote><div class="label">' + esc(S.reference) + (S.translation ? " · " + esc(S.translation) : "") + '</div>' : '<div style="font:400 clamp(22px,3.6vw,30px)/1.2 var(--display);margin:6px 0 4px">' + esc(S.reference) + '</div>') +
+          '<p style="margin-top:16px"><a class="btn ghost" style="text-decoration:none;display:inline-block" href="' + esc(link) + '" target="_blank" rel="noopener">Read the passage</a></p>' : '<blockquote class="muted">The key text for this Sunday will show here.</blockquote>') +
+        '<p class="cap" style="margin-top:14px">From the Sunday plan.</p>';
+      if (canEditSeries) qv.innerHTML += '<p style="margin-top:6px"><button class="btn ghost" id="qe" type="button">' + (S.text ? "Change verse text" : "Add verse text") + '</button></p>';
       if ($("qe")) $("qe").onclick = edit;
     }
     function edit() {
       var f = function (id, label, val, ph, area) { return '<label class="label muted" for="' + id + '" style="display:block;margin-top:12px">' + label + '</label>' + (area ? '<textarea id="' + id + '" rows="3" placeholder="' + ph + '"' : '<input id="' + id + '" type="text" autocomplete="off" placeholder="' + ph + '"') + ' style="width:100%;margin-top:6px;padding:10px 14px;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--hair);border-radius:0;min-height:48px"' + (area ? '>' + esc(val) + '</textarea>' : ' value="' + esc(val) + '">'); };
-      S = D.series || {};
-      qv.innerHTML = f("sv-t", "Series name", S.title || "", "As it appears on the Sunday series") + f("sv-r", "Scripture reference", S.reference || "", "For example: Nehemiah 2:17-18") + f("sv-x", "Verse text, exactly as printed", S.text || "", "Paste the verse from your Bible translation", true) + f("sv-v", "Translation", S.translation || "", "For example: NIV") +
+      S = sundayInfo();
+      qv.innerHTML = '<p class="cap" style="margin:0">Key text: <b>' + esc(S.reference || "not set") + '</b>. Paste the verse exactly as printed to show it on the card.</p>' + f("sv-x", "Verse text", S.text || "", "Paste the verse from your Bible translation", true) + f("sv-v", "Translation", S.translation || "", "For example: NIV") +
         '<p class="cap" id="sv-msg" style="margin:10px 0 0"></p><div style="display:flex;gap:10px;margin-top:14px"><button class="btn" id="qs" type="button">Save</button><button class="btn ghost" id="qc" type="button">Cancel</button></div>';
       $("qs").onclick = async function () {
-        var v = { title: $("sv-t").value.trim().slice(0, 120), reference: $("sv-r").value.trim().slice(0, 120), text: $("sv-x").value.trim().slice(0, 900), translation: $("sv-v").value.trim().slice(0, 20) };
+        var v = { title: S.series || "", reference: S.reference || "", text: $("sv-x").value.trim().slice(0, 900), translation: $("sv-v").value.trim().slice(0, 20) };
         $("qs").disabled = true; $("sv-msg").textContent = "Saving...";
         try { var db = await window.claude.use("db"); if (!db) throw 0; await db.doc("dashboard/series").set(v); D.series = v; paintWordTile(); show(); }
         catch (e) { $("qs").disabled = false; $("sv-msg").textContent = "Couldn't save. You need edit access to this dashboard."; }
@@ -410,7 +423,7 @@ window.GMStart = function (D, who) {
   // ---------- live sync: the viewer's own connectors, refreshed every 15 minutes ----------
   // The saved snapshot paints first; Planning Center and Slack results are merged over it when this viewer has them connected.
   var SYNC = { mcp: null, state: {}, at: 0, busy: false }, PCO = "Planning Center", SLK = "Slack", SLACK_CH = "C08777PFT25";
-  var SRC = [["calendar", "Calendar", "Planning Center"], ["attendance", "Attendance", "Planning Center"], ["giving", "Giving", "Planning Center"], ["slack", "Dates, PTO, birthdays", "Slack"]];
+  var SRC = [["calendar", "Calendar", "Planning Center"], ["attendance", "Attendance", "Planning Center"], ["giving", "Giving", "Planning Center"], ["slack", "Dates, PTO, birthdays", "Slack"], ["sunday", "Sunday message", "Planning Center"]];
   var fTime = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" });
   function etParts(utcStr) {
     var o = {};
@@ -492,6 +505,23 @@ window.GMStart = function (D, who) {
       });
     }, function () { return pullGivingPco(); });
   }
+  function pullSunday() { // the next Sunday-morning plan: series_title from the plan, message title and key text from its "Message" item ("Series | Title | Neh 3")
+    return call(PCO, "services_plans", { service_type_id: "1294257", filter: "future", per_page: 1 }).then(function (p) {
+      var plan = (p.data || [])[0]; if (!plan) throw { code: "tool_error" };
+      var at = plan.attributes || {}, date = at.sort_date ? etParts(at.sort_date).iso : "";
+      return call(PCO, "services_plan_items", { service_type_id: "1294257", plan_id: plan.id, per_page: 40 }).then(function (r) {
+        var inMsg = false, found = null;
+        (r.data || []).forEach(function (i) {
+          var a = i.attributes || {};
+          if (a.item_type === "header") { inMsg = /message/i.test(a.title || ""); return; }
+          if (inMsg && !found && a.item_type === "item") found = String(a.title || "");
+        });
+        var bits = found ? found.split("|").map(function (x) { return x.trim(); }) : [];
+        D.sunday = { date: date, series: at.series_title || bits[0] || "", title: bits.length > 2 ? bits[1] : (bits.length === 2 ? bits[1] : ""), reference: bits.length > 2 ? fullRef(bits[2]) : "" };
+        if (!D.sunday.series && !D.sunday.title) throw { code: "tool_error" };
+      });
+    });
+  }
   function parseImportant(text) {
     var m = /Upcoming Activities[\s\S]*?\[\d{4}-\d{2}-\d{2}[^\]]*\]/.exec(text); if (!m) throw { code: "tool_error" };
     var cur = parts(TODAY), yearFor = function (mo) { return cur.y + (mo < cur.m && cur.m - mo > 6 ? 1 : 0); };
@@ -567,7 +597,7 @@ window.GMStart = function (D, who) {
     if (SYNC.busy || !SYNC.mcp) return; SYNC.busy = true; setBar();
     var out = {}, pco = null, slack = null;
     var run = function (key, fn) { return fn().then(function (v) { SYNC.state[key] = "live"; return v; }, function (e) { SYNC.state[key] = why(e); return null; }); };
-    await Promise.all([run("calendar", pullCalendar).then(function (v) { pco = v; }), run("attendance", pullAttendance), run("giving", pullGiving), run("slack", pullSlack).then(function (v) { slack = v; })]);
+    await Promise.all([run("calendar", pullCalendar).then(function (v) { pco = v; }), run("attendance", pullAttendance), run("giving", pullGiving), run("slack", pullSlack).then(function (v) { slack = v; }), run("sunday", pullSunday)]);
     if (SYNC.state.calendar === "live" || SYNC.state.slack === "live") mergeEvents(pco, slack);
     SYNC.busy = false; if (SRC.some(function (s) { return SYNC.state[s[0]] === "live"; })) SYNC.at = Date.now();
     rerender(); setBar();

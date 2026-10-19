@@ -77,6 +77,8 @@ window.GM = {
   // ---------- Series verse ----------
   // Set from the dashboard by someone with edit access (saved as dashboard/series). Empty until a person chooses the series name and verse.
   series: {},
+  // The coming Sunday, from the Sunday-morning plan in Planning Center (refreshed live for connected viewers).
+  sunday: { date: "2026-10-25", series: "Rebuild", title: "Everyone Has a Section", reference: "Nehemiah 3" },
 
   // ---------- Bold Springs Campaign ----------
   campaign: {

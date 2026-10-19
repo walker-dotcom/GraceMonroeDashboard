@@ -109,6 +109,7 @@ window.GMStart = function (D, who) {
       { id: "calendar", label: "Calendar", big: nk ? rel(nk.d) : "Open", sub: nk ? nk.title : "Week, month, quarter" },
       { id: "giving", label: "Giving", big: G ? dollars(G.mtd) : "$ — —", sub: G ? G.label.replace(" MTD", "") + " total · " + (G.units == null ? "units pending" : Number(G.units).toLocaleString() + " giving units") : "Not connected yet" },
       { id: "attendance", label: "Attendance", big: String(cur.inPerson), sub: short(cur.d) + " · " + (cur.inPerson >= avg ? "+" : "") + (cur.inPerson - avg) + " vs 4-week avg" },
+      { id: "dir", label: "Directory", big: String((D.staff || []).length), sub: "Names, titles and teams" },
       { id: "bday", label: "Celebrations", big: bd ? bd.name.split(" ")[0] : "None", sub: bd ? short(bd.iso) + " · in " + diff(TODAY, bd.iso) + " days" : "Nothing coming up" },
       { id: "divvy", label: "Divvy reminder", big: diff(TODAY, dv) + "d", sub: long(dv) },
       { id: "word", label: "Sunday message", big: sundayInfo().series || "This series", sub: sundaySub() },
@@ -116,7 +117,7 @@ window.GMStart = function (D, who) {
       { id: "pto", label: "PTO", big: out.length + " out", sub: out.length ? out.map(function (o) { return o.name; }).join(", ") : nextOut ? "Next: " + nextNames + " · " + short(nextOut.from) : "Full team in" }
     ];
   }
-  var TONE = { calendar: "s", giving: "p", attendance: "b", bday: "f", divvy: "p", word: "b", camp: "camp s", pto: "b" }; // tile color: slate, pale, steel, fog
+  var TONE = { calendar: "s", giving: "p", attendance: "b", dir: "s", bday: "f", divvy: "p", word: "b", camp: "camp s", pto: "b" }; // tile color: slate, pale, steel, fog
   var TRIG = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1 L11 6 L2 11 Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
   function countText(el) { // animate the first whole number in a headline, keep the rest ("10d", "0 out")
     var m = /\d+/.exec(el.textContent); if (!m || reduce) return;
@@ -134,6 +135,7 @@ window.GMStart = function (D, who) {
     calendar: '<rect x="6" y="9" width="36" height="33"' + P + '/><path d="M6 18H42"' + P + '/><path d="M15 5V12M33 5V12"' + P + '/><path class="mk" d="M20 25L32 31L20 37Z"' + P + '/>',
     giving: '<circle cx="24" cy="24" r="17"' + P + '/><circle cx="24" cy="24" r="12.5"' + P + '/><path class="mk" d="M20 17L31 24L20 31Z"' + P + '/>',
     attendance: '<path d="M4 43H44"' + P + '/><rect x="7" y="28" width="8" height="15"' + P + '/><rect x="20" y="18" width="8" height="25"' + P + '/><rect x="33" y="9" width="8" height="34"' + P + '/><path class="mk" d="M5 20L13 14.5L5 9Z"' + P + '/>',
+    dir: '<circle cx="24" cy="16" r="8"' + P + '/><path d="M8 42C8 31 15 26 24 26C33 26 40 31 40 42Z"' + P + '/><path class="mk" d="M20 33L28 37L20 41Z"' + P + '/>',
     bday: '<rect x="7" y="29" width="34" height="13"' + P + '/><path d="M16 29V21M24 29V19M32 29V21"' + P + '/><path class="mk" d="M13 10L19 13.5L13 17Z"' + P + '/><path class="mk" d="M21 6L27 9.5L21 13Z"' + P + '/><path class="mk" d="M29 10L35 13.5L29 17Z"' + P + '/>',
     divvy: '<rect x="4" y="11" width="40" height="27"' + P + '/><path d="M4 19H44"' + P + '/><path class="mk" d="M10 25L19 29.5L10 34Z"' + P + '/><path d="M26 29.5H38"' + P + '/>',
     word: '<path d="M6 8H42V32H22L12 41V32H6Z"' + P + '/><path d="M14 16H34M14 23H27"' + P + '/><path class="mk" d="M31 21L37 24L31 27Z"' + P + '/>',
@@ -144,15 +146,15 @@ window.GMStart = function (D, who) {
     $("tiles").innerHTML = tileData().map(function (t, i) {
       var big = t.id === "word" ? esc(t.big) : t.big;
       return '<div class="tile rv ' + TONE[t.id] + '" id="t-' + t.id + '" style="animation-delay:' + i * 50 + 'ms">' +
-        '<button class="th" aria-expanded="false" aria-controls="p-' + t.id + '" data-t="' + t.id + '"><span class="label">' + t.label + '</span><span class="tb"' + (["attendance", "divvy", "camp", "pto"].indexOf(t.id) > -1 ? ' data-count="1"' : "") + '>' + big + '</span><span class="ts">' + t.sub + '</span><span class="tg">' + TRIG + '<em>Open</em></span><svg class="ico" viewBox="0 0 48 48" aria-hidden="true">' + ICONS[t.id] + '</svg></button>' +
+        '<button class="th" aria-expanded="false" aria-controls="p-' + t.id + '" data-t="' + t.id + '"><span class="label">' + t.label + '</span><span class="tb"' + (["attendance", "divvy", "camp", "pto", "dir"].indexOf(t.id) > -1 ? ' data-count="1"' : "") + '>' + big + '</span><span class="ts">' + t.sub + '</span><span class="tg">' + TRIG + '<em>Open</em></span><svg class="ico" viewBox="0 0 48 48" aria-hidden="true">' + ICONS[t.id] + '</svg></button>' +
         '<div class="tp" id="p-' + t.id + '" hidden><div id="' + t.id + '"></div></div></div>';
     }).join("");
     Array.prototype.forEach.call($("tiles").querySelectorAll(".tb[data-count]"), function (el) { if (!$("app").classList.contains("settled")) countText(el); });
     Array.prototype.forEach.call($("tiles").querySelectorAll(".th"), function (b) { b.onclick = function () { toggleTile(b.getAttribute("data-t")); }; });
   }
   var MOBILE = window.matchMedia ? window.matchMedia("(max-width:639px)") : { matches: false };
-  var TAB_OF = { calendar: "calendar", attendance: "numbers", giving: "numbers", bday: "team", pto: "team" };
-  var GROUPS = { numbers: ["attendance", "giving"], team: ["bday", "pto"] };
+  var TAB_OF = { calendar: "calendar", attendance: "numbers", giving: "numbers", dir: "team", bday: "team", pto: "team" };
+  var GROUPS = { numbers: ["attendance", "giving"], team: ["dir", "bday", "pto"] };
   function syncTabs() {
     var open = document.querySelector(".tile.open:not(.closing)"), cur = open ? (TAB_OF[open.id.slice(2)] || "home") : "home", vis = [], idx = 0;
     Array.prototype.forEach.call(document.querySelectorAll("#tabbar .tabb"), function (b) {
@@ -320,6 +322,29 @@ window.GMStart = function (D, who) {
     var nx = nextDom(D.divvy.days, TODAY), n = diff(TODAY, nx), pct = Math.max(4, Math.min(100, Math.round((1 - n / 14) * 100)));
     $("divvy").innerHTML = '<div style="display:flex;gap:20px;align-items:center"><div class="ring" style="--p:' + pct + '"><span>' + n + 'd</span></div><div><h3 style="margin:0">' + esc(long(nx)) + '</h3><p class="cap" style="margin:4px 0 0">Reminders go out on the 3rd and 17th.</p></div></div>' +
       '<p style="margin:16px 0 8px">Snap receipts, add the memo line, and tag the budget code in Divvy.</p><p class="cap">' + esc(D.divvy.reconcile) + '</p><a class="btn" style="display:inline-block;text-decoration:none" href="' + esc(D.divvy.url) + '" target="_blank" rel="noopener">Open Divvy</a>';
+  }
+
+  // ---------- staff directory ----------
+  var dirQ = "", dirOpen = "";
+  function renderDir() {
+    var el = $("dir"), S = D.staff || [], q = dirQ.trim().toLowerCase();
+    var out = {}; outOn(TODAY).forEach(function (o) { out[o.name.toLowerCase()] = o.kind; });
+    var bdOf = {}; D.birthdays.forEach(function (b) { bdOf[b.name] = b.md; });
+    var list = S.filter(function (x) { return !q || (x.name + " " + x.title + " " + x.team).toLowerCase().indexOf(q) > -1; });
+    var order = [], by = {}; list.forEach(function (x) { if (!by[x.team]) { by[x.team] = []; order.push(x.team); } by[x.team].push(x); });
+    var ini = function (n) { var w = n.split(" "); return (w[0][0] + (w[1] ? w[1][0] : "")).toUpperCase(); };
+    var html = order.map(function (t) {
+      return '<div class="label muted dirh">' + esc(t) + '</div>' + by[t].map(function (x) {
+        var first = x.name.split(" ")[0].toLowerCase(), o = out[first], open = dirOpen === x.name;
+        var det = '<div class="dd">' + (x.reports ? '<div><span class="cap">Reports to</span> ' + esc(x.reports) + '</div>' : '') + '<div><span class="cap">Team</span> ' + esc(t) + '</div>' + (bdOf[x.name] ? '<div><span class="cap">Birthday</span> ' + esc(short(parts(TODAY).y + "-" + bdOf[x.name])) + '</div>' : '') + (o ? '<div><span class="cap">Today</span> ' + esc(o) + '</div>' : '') + (x.note ? '<p class="cap">' + esc(x.note) + '</p>' : '') + (x.doc ? '<a class="btn ghost" style="display:inline-block;text-decoration:none;margin-top:8px" href="https://docs.google.com/document/d/' + esc(x.doc) + '/edit" target="_blank" rel="noopener">Position description</a>' : '') + '</div>';
+        return '<div class="drow' + (open ? " on" : "") + '"><button type="button" class="dbtn" data-n="' + esc(x.name) + '" aria-expanded="' + open + '"><span class="dav">' + esc(ini(x.name)) + '</span><span class="dn"><b>' + esc(x.name) + '</b><span class="cap">' + esc(x.title) + '</span></span>' + (o ? '<span class="cap dout">' + esc(o) + '</span>' : '') + '</button>' + (open ? det : '') + '</div>';
+      }).join("");
+    }).join("");
+    el.innerHTML = '<div class="head rv"><h2>Staff directory</h2><span class="label muted">' + S.length + ' people</span></div>' +
+      '<input id="dirq" class="dirq" type="search" placeholder="Search name, title or team" value="' + esc(dirQ) + '" aria-label="Search the staff directory">' +
+      (html || '<p class="cap">No one matches.</p>') + '<p class="cap">From the Staff Directory &amp; Organizational Structure doc in Drive. Work titles only.</p>';
+    var qi = $("dirq"); qi.oninput = function () { dirQ = qi.value; var pos = qi.selectionStart; renderDir(); var n = $("dirq"); n.focus(); n.setSelectionRange(pos, pos); };
+    Array.prototype.forEach.call(el.querySelectorAll(".dbtn"), function (b) { b.onclick = function () { var n = b.getAttribute("data-n"); dirOpen = dirOpen === n ? "" : n; renderDir(); }; });
   }
 
   // ---------- series verse: the series name and a Scripture passage a person chose (shown as written; nothing is generated) ----------
@@ -577,7 +602,7 @@ window.GMStart = function (D, who) {
   }
   function rerender() {
     var open = document.querySelector(".tile.open"), id = open ? open.id.slice(2) : null;
-    renderShell(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderWord(); renderCampaign(); renderPto();
+    renderShell(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderDir(); renderWord(); renderCampaign(); renderPto();
     if (id) toggleTile(id, true);
   }
   function setBar() {
@@ -613,7 +638,7 @@ window.GMStart = function (D, who) {
     }, function () {});
   }
 
-  renderShell(); renderHero(); renderTabbar(); renderAvatar(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderWord(); renderCampaign(); renderPto(); renderFoot();
+  renderShell(); renderHero(); renderTabbar(); renderAvatar(); renderCalendar(); renderGiving(); renderAttendance(); renderPeople(); renderDir(); renderWord(); renderCampaign(); renderPto(); renderFoot();
   setTimeout(function () { $("app").classList.add("settled"); }, 2600);
   startSync();
   if (window.GMAsk) window.GMAsk(who);

@@ -462,3 +462,16 @@ header.top { padding-left:env(safe-area-inset-left,0px); padding-right:env(safe-
     .tile.closing .tp { animation:none; }
   }
 }
+
+/* staff directory */
+.dirq { width:100%; min-height:44px; padding:0 14px; margin:4px 0 8px; background:transparent; color:var(--ink); border:1px solid var(--c); font:400 15px var(--sans); border-radius:0; }
+.dirh { margin-top:20px; }
+.drow { border-top:1px solid color-mix(in srgb, var(--c) 45%, var(--hair)); }
+.dbtn { display:flex; align-items:center; gap:14px; width:100%; min-height:56px; padding:8px 0; background:transparent; border:0; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.dav { flex:none; width:40px; height:40px; display:grid; place-items:center; border:1px solid var(--c); font:600 13px var(--sans); letter-spacing:.06em; }
+.drow.on .dav { background:var(--c); color:var(--cf); }
+.dn { display:flex; flex-direction:column; flex:1; min-width:0; }
+.dout { flex:none; }
+.dd { padding:0 0 14px 54px; display:grid; gap:4px; font-size:14px; }
+.dd .cap { margin-right:6px; }
+.dd .btn { color:var(--c); border:1px solid var(--c); background:transparent; padding:0 14px; line-height:40px; }

@@ -71,6 +71,32 @@ window.GM = {
   // Work anniversaries need hire dates (no source yet). Shape: { name, date: "YYYY-MM-DD" }
   anniversaries: [],
 
+  // ---------- Staff directory ----------
+  // Source: Drive doc "Grace Monroe — Staff Directory & Organizational Structure". Work info only: names, titles, team, position description.
+  staff: [
+    { name: "Brian Krawczyk", title: "Lead Pastor", team: "Lead Pastor", doc: "1spCNmxXGTwxMjwmLxCy-zwna5ut8AlP1naOj9ynGLYA" },
+    { name: "Julie Marijanich", title: "Executive Director", team: "Core Team", reports: "Brian Krawczyk", doc: "16QOkqUn-6DHWqRz5OAY7kC2BJe4JJbEbG9f8qN3ljRQ" },
+    { name: "Emily Jones", title: "Next Gen Pastor", team: "Core Team", reports: "Brian Krawczyk", doc: "1dK08XC3tQsVZOfkiZFJQMg0ur85EUQc7" },
+    { name: "Jon Mitchell", title: "Adult Discipleship Pastor", team: "Core Team", reports: "Brian Krawczyk", doc: "1s31ZxNO6dUckirfbODN7lPJ3pN-FyBqowpfOP5HcZQE" },
+    { name: "David Walker", title: "Worship Pastor", team: "Core Team", reports: "Brian Krawczyk", doc: "1lU-nVxLBnoa6fZoP-de7k8bxg5TYULRehMmN9gLK5W0" },
+    { name: "Sandy Allen", title: "Executive Admin", team: "Direct Reports", reports: "Brian Krawczyk", doc: "1f2Ob5cW0HYUaY4ggolGx7K5xhw85nxRT" },
+    { name: "Alysia Wood", title: "Global Missions Liaison", team: "Direct Reports", reports: "Brian Krawczyk" },
+    { name: "Nicole Swart", title: "Ministry Leader (The Village)", team: "Direct Reports", reports: "Brian Krawczyk", note: "The Village is self-sustaining and has no formal reporting line. Brian checks in; the Executive Director answers logistical questions." },
+    { name: "Denise Dixon", title: "Connections Pastor", team: "Executive & Operations", reports: "Julie Marijanich", doc: "10jOExHbs_uYBlwOz6NAmxVlZbpQY0RJ_2ciud4AyQpc" },
+    { name: "Kyle McKinnon", title: "Kidz Life Pastor / Camp & Events Coordinator", team: "Executive & Operations", reports: "Julie Marijanich" },
+    { name: "Richard Allen", title: "Facilities Director", team: "Executive & Operations", reports: "Julie Marijanich" },
+    { name: "Keely Thompson", title: "Janitorial Director", team: "Executive & Operations", reports: "Julie Marijanich" },
+    { name: "Katherine Winters", title: "NextGen Admin", team: "NextGen", reports: "Emily Jones", doc: "1eq7sfBdCcO-uasB5vEqss-hEdLrXngyrMvgTM8J3IBs" },
+    { name: "Liberty Gable", title: "HS Director / Carver MS Missionary", team: "NextGen", reports: "Emily Jones", doc: "1KBO_EujstYTrY7OZwzEBK1G6vyaa4Ia8zzL1RFpyBEo" },
+    { name: "Maxx Godfrey", title: "MS Director", team: "NextGen", reports: "Emily Jones", doc: "1GVHoDaFwU9l3p7voVZJOVt_Vu8_fEKE1" },
+    { name: "Alisa Moore", title: "Ministry Leader (Moms4Moms)", team: "NextGen", reports: "Emily Jones" },
+    { name: "Morgan Watts", title: "Ministry Leader (Special Needs)", team: "NextGen", reports: "Emily Jones" },
+    { name: "Chase Boyd", title: "Adult / Hospitality (split role)", team: "Adult Discipleship", reports: "Jon Mitchell", doc: "1OCgC6y970QYQg4gPeMcBFmJsx7XSuEdG6lWJZM8Fr44" },
+    { name: "Lily Bilsland", title: "Ministry Leader (Prayer)", team: "Adult Discipleship", reports: "Jon Mitchell" },
+    { name: "Adey Gunnin", title: "Worship", team: "Worship & Creative", reports: "David Walker" },
+    { name: "Emma Bradley", title: "Communications Director", team: "Worship & Creative", reports: "David Walker" }
+  ],
+
   // ---------- Divvy ----------
   divvy: { days: [3, 17], reconcile: "Reconcile receipts by the 5th and 20th (Slack, Aug 20).", url: "https://app.getdivvy.com" },
 
